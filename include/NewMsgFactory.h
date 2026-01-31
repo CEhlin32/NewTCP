@@ -6,25 +6,30 @@
 #include <MsgPacket.h>
 
 
-class NewMsgFactory
+namespace newtcp
 {
-public:
-    NewMsgFactory();
-    ~NewMsgFactory();
-    static void AddMessageFactory(NewMsgFactory* factory);
-    static Msg* CreateMessage(MsgPacket& packet);
-    virtual Msg* CreateMsgInstance(MsgPacket& packet) = 0;
+    class NewMsgFactory
+    {
+    public:
+        NewMsgFactory();
+        ~NewMsgFactory();
+        static void AddMessageFactory(NewMsgFactory* factory);
+        static Msg* CreateMessage(MsgPacket& packet);
+        virtual Msg* CreateMsgInstance(MsgPacket& packet) = 0;
 
-    private:
-    static std::vector<NewMsgFactory*> m_Factories;
-};
+        private:
+        static std::vector<NewMsgFactory*> m_Factories;
+    };
 
-class SystemMsgFactory : public NewMsgFactory
-{
-public:
-    SystemMsgFactory();
-    ~SystemMsgFactory();    
-    virtual Msg* CreateMsgInstance(MsgPacket& packet) override;
-};
+    class SystemMsgFactory : public NewMsgFactory
+    {
+    public:
+        SystemMsgFactory();
+        ~SystemMsgFactory();    
+        virtual Msg* CreateMsgInstance(MsgPacket& packet) override;
+    };
+} // namespace newtcp
+
+
 
 #endif // NEW_MSG_FACTORY_H

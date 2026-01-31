@@ -4,23 +4,26 @@
 #include <string>
 #include <MsgPacket.h>
 
-class Msg
+namespace newtcp
 {
-public:
-    Msg(std::string name, int msgID = -1);
-    Msg(std::string name, MsgPacket& packet);
-    ~Msg();
-    MsgPacket& Serialize(bool encrypt = false);
-    std::string GetName() const;
+    class Msg
+    {
+    public:
+        Msg(std::string name, int msgID = -1);
+        Msg(std::string name, MsgPacket& packet);
+        ~Msg();
+        MsgPacket& Serialize(bool encrypt = false);
+        std::string GetName() const;
 
-    protected:
-    virtual void SerializeBody(){/*Default is no Body to Serialize*/;}
-    virtual void DeSerializeBody() {/*Default is no Body to Deserialize*/;}
+        protected:
+        virtual void SerializeBody(){/*Default is no Body to Serialize*/;}
+        virtual void DeSerializeBody() {/*Default is no Body to Deserialize*/;}
 
-    // Add members and methods as needed
-    std::string m_Name;
-    MsgPacket m_MsgPacket;
-};
+        // Add members and methods as needed
+        std::string m_Name;
+        MsgPacket m_MsgPacket;
+    };
+} // namespace newtcp
 
 
 
