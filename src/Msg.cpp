@@ -27,7 +27,7 @@ namespace newtcp
         SerializeBody();
         // move bodyData to MsgPacket if not encrypting
         if(false == encrypt)
-            m_MsgPacket.SetBodyDataFromStr( m_MsgPacket.GetBodyDataAsStr());
+            m_MsgPacket.SetPacketDataFromStr( m_MsgPacket.GetBodyDataAsStr());
 
         return m_MsgPacket;
     }
@@ -36,4 +36,10 @@ namespace newtcp
     {
         return m_Name;
     }
+
+    int Msg::GetConnectionID() const
+    {
+        return m_MsgPacket.GetConnectionID();
+    }
+
 } // namespace newtcp

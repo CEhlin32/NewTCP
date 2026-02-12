@@ -1,20 +1,21 @@
 #include <MsgPacket.h>
 #include <sys/socket.h>
 #include <unistd.h>
-
+#include <SystemMsgs.h>
 
 namespace newtcp
 {
-    MsgPacket::MsgPacket(std::string name, int msgID) : m_Name(name)
+    MsgPacket::MsgPacket(std::string name, int msgID) : m_Name(name), m_ConnectionID(msgID)
     {
         // Initialize packet data with default values
         m_Data.Prefix = 0xDEADBEEF; // Example prefix
-        m_Data.MsgID = msgID;
+        m_Data.MsgID = TCPMsgEnumManager::Get().GetAbsoluteID(name);
         m_Data.MsgBodySize = 0;
-        m_Data.PacketHandlerType = 0;
         m_Data.IsEncrypted = false;
         m_Data.Postfix = 0xBEEFDEAD; // Example postfix
+        ServerType = LOCAL_SERVER;
     }
+    
 
     MsgPacket::~MsgPacket()
     {
@@ -26,19 +27,38 @@ namespace newtcp
     }
     void MsgPacket::SetMsgID(int msgID)
     {
+        IsMsgIDAbsolute = false;
         m_Data.MsgID = msgID;
     }
     int MsgPacket::GetMsgID() const
     {
         return m_Data.MsgID;
     }
-    void MsgPacket::SetPacketHandlerType(int type)
+
+    void MsgPacket::ChangeRelativeIDToAbsID()
     {
-        m_Data.PacketHandlerType = type;
+        if(!IsMsgIDAbsolute)
+        {
+            m_Data.MsgID = TCPMsgEnumManager::Get().GetAbsoluteID(m_Name);
+            IsMsgIDAbsolute = true;
+        }
     }
-    int MsgPacket::GetPacketHandlerType() const
+
+    void MsgPacket::ChangeAbsoluteIDToRelID()
     {
-        return m_Data.PacketHandlerType;
+        if(IsMsgIDAbsolute)
+        {
+            m_Data.MsgID = TCPMsgEnumManager::Get().GetRelativeID(m_Name);
+            IsMsgIDAbsolute = false;
+        }
+    }
+    void MsgPacket::SetServerType(TCPServerTypes type)
+    {
+        ServerType = type;
+    }
+    TCPServerTypes MsgPacket::GetServerType () const
+    {
+        return ServerType;
     }
 
     bool MsgPacket::GetIsEncrypted() const

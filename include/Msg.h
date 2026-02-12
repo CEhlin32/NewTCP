@@ -14,7 +14,8 @@ namespace newtcp
         ~Msg();
         MsgPacket& Serialize(bool encrypt = false);
         std::string GetName() const;
-
+        int GetConnectionID() const;
+ 
         protected:
         virtual void SerializeBody(){/*Default is no Body to Serialize*/;}
         virtual void DeSerializeBody() {/*Default is no Body to Deserialize*/;}

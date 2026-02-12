@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <CommonDefinitions.h>
 
 namespace newtcp
 {
@@ -38,12 +39,24 @@ namespace newtcp
         int GetPrefix() const;  
         void SetMsgID(int msgID);
         int GetMsgID() const;
+        void ChangeRelativeIDToAbsID();
+        void ChangeAbsoluteIDToRelID();
 
-        void SetPacketHandlerType(int type);
-        int GetPacketHandlerType() const;
+        void SetServerType(TCPServerTypes type);
+        TCPServerTypes GetServerType() const;
+
         void SetIsEncrypted(bool isEncrypted);
         bool GetIsEncrypted() const;
         int GetPostfix() const;
+
+        void SetConnectionID(int connectionID)
+        {
+            m_ConnectionID = connectionID;
+        }
+        int GetConnectionID() const
+        {
+            return m_ConnectionID;
+        }
 
         size_t GetMsgHdrSize() const
         {
@@ -119,16 +132,19 @@ namespace newtcp
             int Prefix;
             int MsgID;
             int MsgBodySize;
-            int PacketHandlerType;
             bool IsEncrypted;
             int Postfix;
         };
         PacketHdrData m_Data;
         std::string m_Name;
+        int m_ConnectionID;
+        TCPServerTypes ServerType;
+
         /// @brief Holds the plain Msg body data
         CompondData m_BodyData;
         /// @brief Holds the data to be sent or received over the network, either encrypted or plain
         CompondData m_PacketData;
+        bool IsMsgIDAbsolute = false;
     };
 } // namespace newtcp
 
