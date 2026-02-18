@@ -20,15 +20,12 @@ namespace newtcp
 
     }
 
-    MsgPacket& Msg::Serialize(bool encrypt /*= false*/) 
+    MsgPacket& Msg::Serialize() 
     {
-        m_MsgPacket.SetIsEncrypted(encrypt);
         // Serialize body first
         SerializeBody();
         // move bodyData to MsgPacket if not encrypting
-        if(false == encrypt)
-            m_MsgPacket.SetPacketDataFromStr( m_MsgPacket.GetBodyDataAsStr());
-
+        m_MsgPacket.SetPacketDataFromStr( m_MsgPacket.GetBodyDataAsStr());
         return m_MsgPacket;
     }
 
@@ -37,6 +34,15 @@ namespace newtcp
         return m_Name;
     }
 
+    MsgPacket& Msg::GetMsgPacket()
+    {
+        return m_MsgPacket;
+    }
+    
+    int Msg::GetMsgID() const
+    {
+        return m_MsgPacket.GetMsgID();
+    }
     int Msg::GetConnectionID() const
     {
         return m_MsgPacket.GetConnectionID();

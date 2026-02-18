@@ -27,30 +27,21 @@ namespace newtcp
     }
     void MsgPacket::SetMsgID(int msgID)
     {
-        IsMsgIDAbsolute = false;
         m_Data.MsgID = msgID;
     }
     int MsgPacket::GetMsgID() const
     {
         return m_Data.MsgID;
+    }           
+
+    int MsgPacket::GetRelID()
+    {
+        return TCPMsgEnumManager::Get().GetRelativeID(m_Data.MsgID);
     }
 
-    void MsgPacket::ChangeRelativeIDToAbsID()
+    int MsgPacket::GetAbsID()
     {
-        if(!IsMsgIDAbsolute)
-        {
-            m_Data.MsgID = TCPMsgEnumManager::Get().GetAbsoluteID(m_Name);
-            IsMsgIDAbsolute = true;
-        }
-    }
-
-    void MsgPacket::ChangeAbsoluteIDToRelID()
-    {
-        if(IsMsgIDAbsolute)
-        {
-            m_Data.MsgID = TCPMsgEnumManager::Get().GetRelativeID(m_Name);
-            IsMsgIDAbsolute = false;
-        }
+        return m_Data.MsgID;
     }
     void MsgPacket::SetServerType(TCPServerTypes type)
     {

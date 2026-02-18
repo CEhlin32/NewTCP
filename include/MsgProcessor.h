@@ -12,23 +12,31 @@ namespace newtcp
     class IMsgProcessor
     {
     public:
-        virtual bool ProcessMsgFromPacket(MsgPacket& packet) = 0;
+        virtual bool ProcessMsg(Msg& msg) = 0;
+    };
+
+    class ICreateMsgFromPacket
+    {
+    public:
         virtual Msg* CreateMsgFromPacketInternal(MsgPacket& packet) = 0;
     };
-    
+
     class MsgProcessor
     {
     public:
         MsgProcessor();
         ~MsgProcessor();
         static void AddMsgProcessor (IMsgProcessor* msgProcessor);
-        static bool ProcessMsgPacket(MsgPacket& packet);
+        static void AddMsgCreator (ICreateMsgFromPacket* msgCreator);
+        static bool ProcessMsgFromPacket(MsgPacket& packet);
         static Msg* CreateMsgFromPacket(MsgPacket& packet);
 protected:
-        virtual bool ProcessMsgFromPacket(MsgPacket& packet) = 0;
+        virtual bool ProcessMsg(Msg& msg) = 0;
         virtual Msg* CreateMsgFromPacketInternal(MsgPacket& packet) = 0;
         private:
         static std::vector<IMsgProcessor*> m_MsgProcessors;
+        static std::vector<ICreateMsgFromPacket*> m_MsgCreators;
+
     };
 
 } // namespace newtcp

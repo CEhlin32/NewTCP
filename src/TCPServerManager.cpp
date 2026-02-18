@@ -109,18 +109,31 @@ void TCPServerManager::PrintCurrentServerStatus(LogOption& cat)
         return pServer;
     }
 
-    bool TCPServerManager::SendTo(Msg& msg, TCPServerTypes types)
+    bool TCPServerManager::SendTo(Msg& msg, int connectionID)
     {
         bool result = false;
 
-        for (auto pServer : m_activeServers)
+        for (auto pTCPConnection: TCPConnection::m_ActiveConnections)
         {
-            if( (pServer->GetServerType() & types) == 0)
+            if( pTCPConnection->GetSocketFd() != connectionID)
                 continue;
-            // Send to all servers of the specified type  
-            result |= pServer->Send(msg);
+            // Send to the connection with the specified ID
+            result |= pTCPConnection->Send(msg);
         }      
     return result;
     }
+
+    bool TCPServerManager::SendToAllConnected(Msg& msg)
+    {
+        bool result = false;
+
+        for (auto pTCPConnection: TCPConnection::m_ActiveConnections)
+        {
+            // Send to all connected connections
+            result |= pTCPConnection->Send(msg);
+        }      
+    return result;
+    }
+
 
 } // namespace newtcp

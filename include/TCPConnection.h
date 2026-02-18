@@ -34,12 +34,13 @@ namespace newtcp
 
 
 
-    class TCPConnection : public IMsgProcessor
+    class TCPConnection : public IMsgProcessor, public ICreateMsgFromPacket
     {
     public:
 
         TCPConnection();
         ~TCPConnection();
+        static std::vector<TCPConnection*> m_ActiveConnections;
 
         bool StartReadThread();
         void StopReadThread();
@@ -56,7 +57,7 @@ namespace newtcp
 
     protected:
         void ReadThreadFunction();   
-        bool ProcessMsgFromPacket(MsgPacket& packet); 
+        bool ProcessMsg(Msg& msg) override; 
         Msg* CreateMsgFromPacketInternal(MsgPacket& packet) override;
         NamedThread *m_pReadThread;
         thread::id m_ReadThreadId;
@@ -69,7 +70,6 @@ namespace newtcp
         AESDecryptor m_aes_decrypt;
 
         bool m_KeepAlive;
-        static std::vector<TCPConnection*> m_ActiveConnections;
 
     };
 } // namespace newtcp

@@ -16,7 +16,7 @@ namespace newtcp
 {
     std::vector<TCPConnection*> TCPConnection::m_ActiveConnections;
 
-    TCPConnection::TCPConnection() : IMsgProcessor(),
+    TCPConnection::TCPConnection() :
         m_socket_fd(-1), 
         m_EncryptionEnabled(false),
         m_pReadThread(nullptr),
@@ -24,6 +24,7 @@ namespace newtcp
     {
         m_ConnectionStatus.status = TCPConnectionStatus::Connection_Available;
         MsgProcessor::AddMsgProcessor(this);
+        MsgProcessor::AddMsgCreator(this);
     }
 
     TCPConnection::~TCPConnection()
@@ -111,16 +112,14 @@ namespace newtcp
                     packet.SetBodyDataFromBytes(packet.GetPacketDataAsBytes());
                 }
 
-                bool msgProcessed = MsgProcessor::ProcessMsgPacket(packet);
+                bool msgProcessed = MsgProcessor::ProcessMsgFromPacket(packet);
             }
         }
     }
 
     Msg* TCPConnection::CreateMsgFromPacketInternal(MsgPacket& packet)
     {
-        int absMessageID = packet.GetMsgID();
-        int relMessageID = TCPMsgEnumManager::Get().GetRelativeID(absMessageID);
-        switch(relMessageID)
+        switch(packet.GetRelID())
         {
             case EnableEncryptDecryptCmd:
                 return  new EnableEncryptDecryptMsg(packet);
@@ -151,15 +150,15 @@ namespace newtcp
         return nullptr;
     }
 
-    bool TCPConnection::ProcessMsgFromPacket(MsgPacket& packet)
+    bool TCPConnection::ProcessMsg(Msg& msg)
     {
-        packet.ChangeRelativeIDToAbsID();
-        int absMessageID = packet.GetMsgID();
-        switch(absMessageID)
+        int absMessageID = msg.GetMsgID();
+        int relMessageID = newtcp::TCPMsgEnumManager::Get().GetRelativeID(absMessageID);
+        switch(relMessageID)
         {
             case EnableEncryptDecryptCmd:
             {               
-                EnableEncryptDecryptMsg enableEncryptDecryptMsg(packet);
+                EnableEncryptDecryptMsg& enableEncryptDecryptMsg = (EnableEncryptDecryptMsg&)msg;
                 EnableEncryption(enableEncryptDecryptMsg.m_nextIV, enableEncryptDecryptMsg.GetEncryptionIV());
                 
                 // send msg info data
@@ -168,7 +167,7 @@ namespace newtcp
             }
             case AutherizationStartRequestCmd:
             {
-                AutherizationStartRequestMsg authReqMsg(packet);
+                AutherizationStartRequestMsg& authReqMsg = (AutherizationStartRequestMsg&)msg;
                 Autherization * pAuth = Autherization::Get();
                 pAuth->StartAutherizationMode(authReqMsg.GetInitValue());
 
@@ -185,7 +184,7 @@ namespace newtcp
             case ValidateIVCmd:
             {
                 // Handle ValidateIV command
-                ValidateIVMsg  validateMsg = ValidateIVMsg(packet);
+                ValidateIVMsg& validateMsg = (ValidateIVMsg&)msg;
                 CryptoBlockVector ivToValidate = validateMsg.GetIVToValidate();
 
                 bool ivIsValid = true;
@@ -213,7 +212,7 @@ namespace newtcp
             }
             case DebugQueryCmd:
             {
-                DebugQueryMsg debugQueryMsg = DebugQueryMsg(packet);
+                DebugQueryMsg& debugQueryMsg = (DebugQueryMsg&)msg;
                 // just respond with debug response
                 CommandDefinition* pCmd = CmdDefinitionManager::GetCommandDefinitions(debugQueryMsg.GetQueryStr());
                 DebugResponseMsg debugRespMsg;
@@ -258,8 +257,7 @@ namespace newtcp
                 return -1; // Invalid socket
             }
             /* code */
-            MsgPacket& packet = msg.Serialize(m_EncryptionEnabled);
-            packet.ChangeRelativeIDToAbsID();
+            MsgPacket& packet = msg.Serialize();
             packet.SetConnectionID(m_socket_fd); // Set connection ID if needed
 
             if(m_EncryptionEnabled)

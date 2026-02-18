@@ -21,7 +21,8 @@ namespace newtcp
         TCPServer* CreateServer(TCPServerTypes type, int maxConnections = 5);
         bool IsServerConnected(TCPServerTypes type);
         int GetServerID(TCPServerTypes type);
-        bool SendTo(Msg& msg, TCPServerTypes types);
+        bool SendTo(Msg& msg, int connectionID);
+        bool SendToAllConnected(Msg& msg);
         static void PrintCurrentServerStatus(LogOption& cat);
         virtual ~TCPServerManager(){;}
     private:

@@ -12,9 +12,11 @@ namespace newtcp
         Msg(std::string name, int msgID = -1);
         Msg(std::string name, MsgPacket& packet);
         ~Msg();
-        MsgPacket& Serialize(bool encrypt = false);
+        MsgPacket& Serialize();
         std::string GetName() const;
         int GetConnectionID() const;
+        int GetMsgID() const;
+        MsgPacket& GetMsgPacket(); 
  
         protected:
         virtual void SerializeBody(){/*Default is no Body to Serialize*/;}
