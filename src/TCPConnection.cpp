@@ -12,7 +12,7 @@
 #include <DebugSupport.h>
 #include <EnumExtender.h>
 
-namespace newtcp
+namespace CE::tcp
 {
     std::vector<TCPConnection*> TCPConnection::m_ActiveConnections;
 
@@ -153,7 +153,7 @@ namespace newtcp
     bool TCPConnection::ProcessMsg(Msg& msg)
     {
         int absMessageID = msg.GetMsgID();
-        int relMessageID = newtcp::TCPMsgEnumManager::Get().GetRelativeID(absMessageID);
+        int relMessageID = CE::tcp::TCPMsgEnumManager::Get().GetRelativeID(absMessageID);
         switch(relMessageID)
         {
             case EnableEncryptDecryptCmd:
@@ -322,5 +322,5 @@ namespace newtcp
 
         return true;
     }
-} // namespace newtcp
+} // namespace CE::tcp
 

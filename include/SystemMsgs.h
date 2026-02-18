@@ -8,7 +8,7 @@
 #include <EnumExtender.h>
 #include <MsgCmds.h>
 
-namespace newtcp
+namespace CE::tcp
 {
     class TCPMsgEnumManager : public EnumExtenderManager
     {

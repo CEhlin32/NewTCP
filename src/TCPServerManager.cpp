@@ -2,7 +2,7 @@
 #include <TCPServer.h>
 #include <DebReport.h>
 
-namespace newtcp
+namespace CE::tcp
 {
 
     TCPServerManager* TCPServerManager::Get()
@@ -136,4 +136,4 @@ void TCPServerManager::PrintCurrentServerStatus(LogOption& cat)
     }
 
 
-} // namespace newtcp
+} // namespace CE::tcp

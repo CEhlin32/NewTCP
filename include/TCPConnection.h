@@ -8,7 +8,7 @@
 #include <Msg.h>
 #include <vector>
 
-namespace newtcp
+namespace CE::tcp
 {
 
     class TCPConnectionStatus
@@ -72,7 +72,7 @@ namespace newtcp
         bool m_KeepAlive;
 
     };
-} // namespace newtcp
+} // namespace CE::tcp
 
 
 

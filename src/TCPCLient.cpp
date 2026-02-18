@@ -1,6 +1,6 @@
 #include <TCPClient.h>
 
-namespace newtcp
+namespace CE::tcp
 {
 
     TCPClient::TCPClient()  {}

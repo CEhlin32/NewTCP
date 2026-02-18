@@ -2,7 +2,7 @@
 #include <Msg.h>
 #include <MsgCmds.h>
 #include <EnumExtender.h>   
-namespace newtcp
+namespace CE::tcp
 
 {
     AvailableCmdInfoMsg::AvailableCmdInfoMsg() : Msg("AvailableCmdInfoCmd", AvailableCmdInfoCmd)

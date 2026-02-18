@@ -3,7 +3,7 @@
 
 #include <Thread.h>
 
-namespace newtcp
+namespace CE::tcp
 {
     class ControllerData
     {
@@ -37,6 +37,6 @@ namespace newtcp
 
     };
 
-}   // namespace newtcp
+}   // namespace CE::tcp
 
 #endif

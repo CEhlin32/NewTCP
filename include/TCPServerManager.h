@@ -9,7 +9,7 @@
 #include <Logger.h>
 
 
-namespace newtcp
+namespace CE::tcp
 {
 
     class TCPServerManager
@@ -30,7 +30,7 @@ namespace newtcp
         inline static TCPServerManager* theInstance;
 
         std::string m_ControllerName;
-        std::vector<newtcp::TCPServer*> m_activeServers;
+        std::vector<CE::tcp::TCPServer*> m_activeServers;
 
         int m_MaxConnections;
         int m_NumberOfLocalConnecions;
@@ -46,7 +46,7 @@ namespace newtcp
         UDPServer* m_pUDPServer;
     };
 
-} // namespace newtcp
+} // namespace CE::tcp
 
 
 #endif // TCP_SERVER_MANAGER_H

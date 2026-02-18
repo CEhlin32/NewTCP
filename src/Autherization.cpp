@@ -10,7 +10,7 @@
 
 using namespace Devices_CE;
 
-namespace newtcp
+namespace CE::tcp
 {
     Autherization *Autherization::theInstance = nullptr;
 
@@ -89,4 +89,4 @@ namespace newtcp
     {
         return m_IV;
     }
-}   // namespace newtcp
+}   // namespace CE::tcp

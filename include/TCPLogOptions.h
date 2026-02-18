@@ -5,7 +5,7 @@
 #include <TCPLogOptions.h>
 #include <CmdDefinition.h>
 
-namespace newtcp
+namespace CE::tcp
 {
     class TCPStatusCmd : public CommandDefinition
     {

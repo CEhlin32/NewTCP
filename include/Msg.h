@@ -4,7 +4,7 @@
 #include <string>
 #include <MsgPacket.h>
 
-namespace newtcp
+namespace CE::tcp
 {
     class Msg
     {
@@ -26,7 +26,7 @@ namespace newtcp
         std::string m_Name;
         MsgPacket m_MsgPacket;
     };
-} // namespace newtcp
+} // namespace CE::tcp
 
 
 

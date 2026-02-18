@@ -20,7 +20,7 @@
 #define PORT     8080 
 #define MAXLINE 1024 
 
-namespace newtcp
+namespace CE::tcp
 {
         ControllerData::ControllerData(const std::string& name, const std::string& ipAddr) :
             ControllerName(name),
@@ -175,5 +175,5 @@ namespace newtcp
         close(sockfd);
         m_KeepAlive = false;
     }
-} // namespace newtcp
+} // namespace CE::tcp
 

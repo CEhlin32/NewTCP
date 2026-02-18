@@ -5,7 +5,7 @@
 #include <vector>
 #include <CommonDefinitions.h>
 
-namespace newtcp
+namespace CE::tcp
 {
 
     /**
@@ -248,7 +248,7 @@ namespace newtcp
         CompondData m_PacketData;
         bool IsMsgIDAbsolute = false;
     };
-} // namespace newtcp
+} // namespace CE::tcp
 
 
 #endif // MSG_PACKET_H

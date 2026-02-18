@@ -6,7 +6,7 @@
 #include <MsgPacket.h>
 
 
-namespace newtcp
+namespace CE::tcp
 {
 
     class IMsgProcessor
@@ -39,7 +39,7 @@ protected:
 
     };
 
-} // namespace newtcp
+} // namespace CE::tcp
 
 
 

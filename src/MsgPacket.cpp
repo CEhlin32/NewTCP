@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <SystemMsgs.h>
 
-namespace newtcp
+namespace CE::tcp
 {
     MsgPacket::MsgPacket(std::string name, int msgID) : m_Name(name), m_ConnectionID(msgID)
     {
@@ -65,6 +65,6 @@ namespace newtcp
     {
         return m_Data.Postfix;
     }   
-} // namespace newtcp
+} // namespace CE::tcp
 
 

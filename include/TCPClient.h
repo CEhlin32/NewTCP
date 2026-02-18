@@ -8,7 +8,7 @@
 
 #include <TCPConnection.h>
 
-namespace newtcp
+namespace CE::tcp
 {
 
     class TCPClient : public TCPConnection

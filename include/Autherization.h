@@ -6,7 +6,7 @@
 #include <CommonDefinitions.h>
 #include <CryptoKeyIV.h>
 
-namespace newtcp
+namespace CE::tcp
 {
 
     class Autherization
@@ -34,6 +34,6 @@ namespace newtcp
 
 
     };
-} // namespace newtcp
+} // namespace CE::tcp
 
 #endif // AUTHERIZATION_H

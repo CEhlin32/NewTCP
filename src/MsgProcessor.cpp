@@ -3,7 +3,7 @@
 #include <Msg.h>
 #include <SystemMsgs.h>
 
-namespace newtcp
+namespace CE::tcp
 {
     std::vector<IMsgProcessor*> MsgProcessor::m_MsgProcessors;
     std::vector<ICreateMsgFromPacket*> MsgProcessor::m_MsgCreators;
@@ -53,5 +53,5 @@ namespace newtcp
         }   
         return nullptr;
     }
-} // namespace newtcp
+} // namespace CE::tcp
 

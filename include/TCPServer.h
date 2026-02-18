@@ -6,7 +6,7 @@
 
 #include <arpa/inet.h>
 
-namespace newtcp
+namespace CE::tcp
 {
 class TCPServer 
 {

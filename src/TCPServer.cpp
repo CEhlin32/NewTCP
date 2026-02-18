@@ -4,7 +4,7 @@
 #include <arpa/inet.h>
 #include <cstring>
 
-namespace newtcp
+namespace CE::tcp
 {
 
 
@@ -97,7 +97,7 @@ namespace newtcp
             for (auto conn : m_tcpConnections)
             {
                 TCPConnection tcpConnection = *conn;
-                if( tcpConnection.GetConnectionStatus() == newtcp::TCPConnectionStatus::Connection_Available)
+                if( tcpConnection.GetConnectionStatus() == CE::tcp::TCPConnectionStatus::Connection_Available)
                 {
                     conn->SetSocketFd(client_socket);
                     conn->StartReadThread();
@@ -161,4 +161,4 @@ namespace newtcp
         return result;
     }
 
-} // namespace newtcp
+} // namespace CE::tcp

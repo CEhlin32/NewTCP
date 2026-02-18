@@ -1,7 +1,7 @@
 #include "Msg.h"
 #include <MsgPacket.h>
 
-namespace newtcp
+namespace CE::tcp
 {
     Msg::Msg(std::string name, int msgID) : m_Name(name), m_MsgPacket(name, msgID)
     {
@@ -48,4 +48,4 @@ namespace newtcp
         return m_MsgPacket.GetConnectionID();
     }
 
-} // namespace newtcp
+} // namespace CE::tcp
