@@ -7,6 +7,8 @@
 #include <AESSupport.h>
 #include <EnumExtender.h>
 #include <MsgCmds.h>
+#include <nlohmann/json.hpp>
+using json = nlohmann::json_abi_v3_12_0::json;
 
 namespace CE::tcp
 {
@@ -24,18 +26,7 @@ namespace CE::tcp
             AddEnumExtender("TCPMsgCommands", MsgCmds::SystemCmdNames);
         }
     };
-    class SupportedCmdInfoMsg : public Msg
-    {
-    public:
-        SupportedCmdInfoMsg();
-        SupportedCmdInfoMsg(MsgPacket& packet);
-        virtual ~SupportedCmdInfoMsg();
 
-    protected:
-        void SerializeBody() override ;
-        void DeSerializeBody() override {;}
-
-    };
 
     class AvailableCmdInfoMsg : public Msg
     {
@@ -46,10 +37,10 @@ namespace CE::tcp
 
     protected:    
         void SerializeBody() override ;
-
+        void DeSerializeBody() override ;
     private:
         std::vector<std::string> m_AvailableCmdNames;
-
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE(AvailableCmdInfoMsg, m_AvailableCmdNames)
     };    
 
 class AutherizationStartRequestMsg : public Msg
@@ -73,7 +64,8 @@ class AutherizationStartRequestMsg : public Msg
 
     private:
         std::string m_InitAuth;
-
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE(AutherizationStartRequestMsg, m_InitAuth)
+        
 };
 
 class AutherizationReadyMsg : public Msg
@@ -110,7 +102,7 @@ class EnableEncryptDecryptMsg: public Msg
 
     private:
     inline static CryptoBlockVector defaultIV;
-
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(EnableEncryptDecryptMsg, m_nextIV)
 };
 
 class RequestKeyAndIVMsg: public Msg
@@ -155,28 +147,23 @@ protected:
     void SerializeBody() override ;
     void DeSerializeBody() override ;
     IVAndKeyValues m_IVAndKeyValues;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(UpdateKeyAndIVMsg, m_IVAndKeyValues)
 };
-
 class ValidateIVMsg :  public Msg
 {
 public:
     ValidateIVMsg();
     ValidateIVMsg(MsgPacket& packet);
     virtual ~ValidateIVMsg();
-    void SetIVToValidate(CryptoBlockVector iv)
-    {
-        IVToValidate = iv;
-    }
-    CryptoBlockVector GetIVToValidate()
-    {
-        return IVToValidate;
-    }
+    void SetIVToValidate(CryptoBlockVector iv);
+    CryptoBlockVector GetIVToValidate();
 
 protected:    
     void SerializeBody() override ;
     void DeSerializeBody() override ;
 
     CryptoBlockVector IVToValidate;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ValidateIVMsg, IVToValidate)
 };
 
 class ValidateIVResultMsg : public Msg
@@ -185,19 +172,14 @@ public:
     ValidateIVResultMsg();
     ValidateIVResultMsg(MsgPacket& packet);
     virtual ~ValidateIVResultMsg();
-    void SetIsValid(bool isValid)
-    {
-        IsValid = isValid;
-    }
-    bool GetIsValid()
-    {
-        return IsValid;
-    }   
+    void SetIsValid(bool isValid);
+    bool GetIsValid();
 protected:    
     void DeSerializeBody() override ;
     void SerializeBody() override ;
 
     bool IsValid;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ValidateIVResultMsg, IsValid)
 };
 
 
@@ -209,19 +191,14 @@ public:
     DebugQueryMsg(MsgPacket& packet);
     virtual ~DebugQueryMsg();
 
-    void SetQueryStr(std::string queryStr)
-    {
-        QueryStr = queryStr;
-    }
-    std::string GetQueryStr()
-    {
-        return QueryStr;
-    }
+    void SetQueryStr(std::string queryStr);
+    std::string GetQueryStr();
 
 protected:    
     void SerializeBody() override;
     void DeSerializeBody() override ;
     std::string QueryStr;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(DebugQueryMsg, QueryStr)
 };
 
 class DebugResponseMsg : public Msg
@@ -232,19 +209,14 @@ public:
 
     virtual ~DebugResponseMsg();
 
-    void SetResponseStr(std::string responseStr)
-    {
-        ResponseStr = responseStr;
-    }
-    std::string GetResponseStr()
-    {
-        return ResponseStr;
-    }
+    void SetResponseStr(std::string responseStr);
+    std::string GetResponseStr();
 
 protected:    
     void SerializeBody() override;
     void DeSerializeBody() override ;
     std::string ResponseStr; 
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(DebugResponseMsg, ResponseStr)
 };
 }
 #endif // NEW_SYSTEM_MSGS_H

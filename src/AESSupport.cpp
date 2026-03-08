@@ -65,8 +65,8 @@ void AESAccessManagement::ReplaceIV(CryptoBlockVector oldIV, CryptoBlockVector n
     CryptoBlockVector key = GetASEKey(oldIV);
     RemoveASEKey(oldIV);
     IVAndKeyValues newValues;
-    newValues.iv = newIV;
-    newValues.key = key;
+    newValues.IV = newIV;
+    newValues.KEY = key;
 
     AddASEKeyAndIV(newValues);
 }
@@ -74,7 +74,7 @@ void AESAccessManagement::ReplaceIV(CryptoBlockVector oldIV, CryptoBlockVector n
 
 void AESAccessManagement::AddASEKeyAndIV(IVAndKeyValues& keyAndIV)
 {
-    m_IVtoKeyMap.insert(std::pair<CryptoBlockVector,CryptoBlockVector>(keyAndIV.iv, keyAndIV.key) );
+    m_IVtoKeyMap.insert(std::pair<CryptoBlockVector,CryptoBlockVector>(keyAndIV.IV, keyAndIV.KEY) );
 
     // Notify that Access has been added
     PublishEvent();
@@ -139,12 +139,13 @@ bool AESAccessManagement::Serialize(Serializer& serializer)
                 result = false;
                 break;
             }
-            if( false == serializer.SerializeStructure(it->first.data(), ivSize))
+            CryptoBlockVector firstBlockVector = it->first;
+            if( false == serializer.SerializeStructure(firstBlockVector.GetBuf(), ivSize))
             {
                 result = false;
                 break;
             }
-            if( false == serializer.SerializeStructure(it->second.data(), keySize))
+            if( false == serializer.SerializeStructure(it->second.GetBuf(), keySize))
             {
                 result = false;
                 break;
@@ -175,19 +176,23 @@ bool AESAccessManagement::DeSerialize(DeSerializer& deSerializer)
                 result = false;
                 break;
             }
+            
+            uint8_t ivBuf[ivSize];
+            uint8_t keyBuf[ivSize];
+
+            if( false == deSerializer.DeSerializeStructure(ivBuf,ivSize))
+            {
+                result = false;
+                break;
+            }
+            if( false == deSerializer.DeSerializeStructure(keyBuf, keySize))
+            {
+                result = false;
+                break;
+            }
             IVAndKeyValues ivAndKeyValues;
-
-            if( false == deSerializer.DeSerializeStructure(ivAndKeyValues.iv.data(),ivSize))
-            {
-                result = false;
-                break;
-            }
-            if( false == deSerializer.DeSerializeStructure(ivAndKeyValues.key.data(), keySize))
-            {
-                result = false;
-                break;
-            }
-
+            ivAndKeyValues.IV.SetBuf(ivBuf, ivSize);
+            ivAndKeyValues.KEY.SetBuf(keyBuf, keySize);
             AddASEKeyAndIV(ivAndKeyValues);
         }
     }

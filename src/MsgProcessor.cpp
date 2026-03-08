@@ -25,6 +25,23 @@ namespace CE::tcp
     {
         m_MsgProcessors.push_back(msgProcessor);
     }
+
+    void MsgProcessor::RemoveMsgCreator(ICreateMsgFromPacket* msgCreator)
+    {
+        auto it = std::find(m_MsgCreators.begin(), m_MsgCreators.end(), msgCreator);
+        if (it != m_MsgCreators.end()) {
+            m_MsgCreators.erase(it);
+        }
+    }
+
+    void MsgProcessor::RemoveMsgProcessor(IMsgProcessor* msgProcessor)
+    {
+        auto it = std::find(m_MsgProcessors.begin(), m_MsgProcessors.end(), msgProcessor);
+        if (it != m_MsgProcessors.end()) {
+            m_MsgProcessors.erase(it);
+        }
+    }
+
     bool MsgProcessor::ProcessMsgFromPacket(MsgPacket& packet)
     {
         bool completed = false;
@@ -45,7 +62,7 @@ namespace CE::tcp
     {
         for(int i = 0; i < m_MsgCreators.size(); ++i)
         {
-            Msg* pMsg = m_MsgCreators[i]->CreateMsgFromPacketInternal(packet);
+            Msg* pMsg = m_MsgCreators[i]->CreateMsg(packet);
             if(pMsg != nullptr)
             {
                 return pMsg;

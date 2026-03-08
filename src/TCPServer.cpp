@@ -97,7 +97,7 @@ namespace CE::tcp
             for (auto conn : m_tcpConnections)
             {
                 TCPConnection tcpConnection = *conn;
-                if( tcpConnection.GetConnectionStatus() == CE::tcp::TCPConnectionStatus::Connection_Available)
+                if( tcpConnection.GetConnectionStatus() == TCPConnectionStatus::Connection_Available)
                 {
                     conn->SetSocketFd(client_socket);
                     conn->StartReadThread();
@@ -124,9 +124,9 @@ namespace CE::tcp
         return m_serverType; 
     }
     
-    /// @brief Send a message to all active connections on this server
-    /// @param msg The message to send
-    /// @return True if the message was sent to all connections successfully, false otherwise
+    // @brief Send a message to all active connections on this server
+    // @param msg The message to send
+    // @return True if the message was sent to all connections successfully, false otherwise
     bool TCPServer::SendToAll(Msg& msg)
     {
         bool result = true;
@@ -141,9 +141,9 @@ namespace CE::tcp
 
     }
 
-    /// @brief Send a message to a specific connection by connection ID
-    /// @param msg The message to send
-    /// @return True if the message was sent successfully, false otherwise
+    // @brief Send a message to a specific connection by connection ID
+    // @param msg The message to send
+    // @return True if the message was sent successfully, false otherwise
     bool TCPServer::Send(Msg& msg)
     {
         bool result = false;

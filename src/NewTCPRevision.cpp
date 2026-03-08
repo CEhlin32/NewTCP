@@ -1,7 +1,5 @@
  #include <NewTCPRevision.h>
 #include <string>
-
-
 	#ifndef NewTCPMajorRev
 	#define NewTCPMajorRev  1
 	#endif

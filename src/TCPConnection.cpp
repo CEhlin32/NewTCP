@@ -11,6 +11,9 @@
 #include <Logger.h>
 #include <DebugSupport.h>
 #include <EnumExtender.h>
+#include <EnumMsgIDMgr.h>
+
+#include <TCPMsgs.h>
 
 namespace CE::tcp
 {
@@ -23,8 +26,6 @@ namespace CE::tcp
         m_KeepAlive(true)
     {
         m_ConnectionStatus.status = TCPConnectionStatus::Connection_Available;
-        MsgProcessor::AddMsgProcessor(this);
-        MsgProcessor::AddMsgCreator(this);
     }
 
     TCPConnection::~TCPConnection()
@@ -43,6 +44,13 @@ namespace CE::tcp
 
     bool TCPConnection::StartReadThread()
     {
+        MsgProcessor::AddMsgProcessor(this);
+        MsgProcessor::AddMsgCreator(this);
+
+        Test::EnumIDs ids = Test::TCPMsgs::GetInstance().GetTCPMsgEnumIDs();
+        std::string enumName = ids.GetEnumName();
+        Test::MsgManager::Get().AddToMsgProcessors(enumName, this);
+
         m_pReadThread = new NamedThread("TCPConnectionReadThread",
             &TCPConnection::ReadThreadFunction, this);
         m_ReadThreadId = m_pReadThread->get_id();
@@ -52,6 +60,7 @@ namespace CE::tcp
 
     void TCPConnection::StopReadThread()
     {
+
         m_KeepAlive = false;
         close(m_socket_fd);
         if (m_pReadThread != nullptr)
@@ -60,6 +69,10 @@ namespace CE::tcp
             delete m_pReadThread;
             m_pReadThread = nullptr;
         }
+        MsgProcessor::RemoveMsgProcessor(this);
+        MsgProcessor::RemoveMsgCreator(this);
+
+        //Test::MsgManager::Get().RemoveMsgProcessor(this);
     }   
 
     TCPConnectionStatus::ServerStatus TCPConnection::GetConnectionStatus() const
@@ -115,11 +128,15 @@ namespace CE::tcp
                 bool msgProcessed = MsgProcessor::ProcessMsgFromPacket(packet);
             }
         }
+        MsgProcessor::RemoveMsgCreator(this);
+        MsgProcessor::RemoveMsgProcessor(this);
     }
 
-    Msg* TCPConnection::CreateMsgFromPacketInternal(MsgPacket& packet)
+    Msg* TCPConnection::CreateMsg(MsgPacket& packet)
     {
-        switch(packet.GetRelID())
+        EnumExtenderManager& enumManager = TCPMsgEnumManager::Get();
+        int relID = enumManager.GetRelativeID(packet.GetMsgID(), "TCPMsgCommands");
+        switch(relID)
         {
             case EnableEncryptDecryptCmd:
                 return  new EnableEncryptDecryptMsg(packet);
@@ -153,7 +170,7 @@ namespace CE::tcp
     bool TCPConnection::ProcessMsg(Msg& msg)
     {
         int absMessageID = msg.GetMsgID();
-        int relMessageID = CE::tcp::TCPMsgEnumManager::Get().GetRelativeID(absMessageID);
+        int relMessageID = TCPMsgEnumManager::Get().GetRelativeID(absMessageID, "TCPMsgCommands");
         switch(relMessageID)
         {
             case EnableEncryptDecryptCmd:
@@ -194,15 +211,15 @@ namespace CE::tcp
                     ivIsValid = false;
                     TheAppLogger.LogMsgWithTime(DebugErrorLogOption::instance(),
                          "Failed to find key for iv = %s\n", 
-                         DebugSupport::ByteToCharArray(ivToValidate.data(), ivToValidate.size()).c_str());
+                         DebugSupport::ByteToCharArray(ivToValidate.GetBuf(), ivToValidate.size()).c_str());
                     // TODO make byte to char array to a string passed as argument
                 }
                 if(ivIsValid == true)
                 {
                     m_aes_decrypt.AES_init_ctx_iv(key, ivToValidate);
                     m_aes_encrypt.AES_init_ctx_iv(key, ivToValidate);
-                    AESCryptor::printArray(m_aes_decrypt.GetKey().data(), 16);
-                    AESCryptor::printArray(m_aes_decrypt.GetIV().data(), 16);
+                    AESCryptor::printArray(m_aes_decrypt.GetKey().GetBuf(), 16);
+                    AESCryptor::printArray(m_aes_decrypt.GetIV().GetBuf(), 16);
                 }
                 // Send ValidateIVResultCmd result
                 ValidateIVResultMsg resultMsg;

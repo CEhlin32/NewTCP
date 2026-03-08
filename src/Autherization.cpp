@@ -41,8 +41,8 @@ namespace CE::tcp
         std::string KeyStr = m_serverPinStr + m_clientPinStr;
         std::string IVStr = m_clientPinStr + m_serverPinStr;
 
-        std::memcpy(m_Key.data(), KeyStr.data(), KeyStr.length());
-        std::memcpy(m_IV.data(), IVStr.data(), IVStr.length());
+        m_Key.SetBuf((uint8_t*)KeyStr.data(), KeyStr.length());
+        m_IV.SetBuf((uint8_t*)IVStr.data(), IVStr.length());
 
 
         // Stop and Display message from anyhere but her

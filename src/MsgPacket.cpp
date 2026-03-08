@@ -36,7 +36,7 @@ namespace CE::tcp
 
     int MsgPacket::GetRelID()
     {
-        return TCPMsgEnumManager::Get().GetRelativeID(m_Data.MsgID);
+        return TCPMsgEnumManager::Get().GetRelativeID(m_Data.MsgID, "TCPMsgCommands");
     }
 
     int MsgPacket::GetAbsID()

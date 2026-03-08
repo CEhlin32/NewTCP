@@ -17,30 +17,26 @@ namespace CE::tcp
 
     void AvailableCmdInfoMsg::SerializeBody()
     {
+        json j = TCPMsgEnumManager::Get();
+        std::string jsonStr = j.dump(4); // 4-space indentation
+        m_MsgPacket.SetMsgBodySize( jsonStr.size());
+
+#if OLD_SERAILIZE        
         std::string jsonStr = TCPMsgEnumManager::Get().Serialize();
         m_MsgPacket.SetMsgBodySize( jsonStr.size());
         m_MsgPacket.SetIsEncrypted( false);
         m_MsgPacket.SetBodyDataFromStr( jsonStr);
+#endif        
     }
 
+    void AvailableCmdInfoMsg::DeSerializeBody()
+    {
+        std::string bodyStr = m_MsgPacket.GetBodyDataAsStr();
+        TCPMsgEnumManager::Get().DeSerialize(bodyStr);
+    }
     
-   SupportedCmdInfoMsg::SupportedCmdInfoMsg() : Msg("AvailableCmdInfoCmd", AvailableCmdInfoCmd)
-    {
-    }
-    SupportedCmdInfoMsg::SupportedCmdInfoMsg(MsgPacket& packet) : Msg("AvailableCmdInfoCmd", packet)
-    {
-    }
-    SupportedCmdInfoMsg::~SupportedCmdInfoMsg()
-    {
-    }
+///////////////////////////////////////////////////////////////////////
 
-    void SupportedCmdInfoMsg::SerializeBody()
-    {
-        std::string jsonStr = TCPMsgEnumManager::Get().Serialize();
-        m_MsgPacket.SetMsgBodySize( jsonStr.size());
-        m_MsgPacket.SetIsEncrypted( false);
-        m_MsgPacket.SetBodyDataFromStr( jsonStr);
-    }
 
     AutherizationStartRequestMsg::AutherizationStartRequestMsg() : 
         Msg("AutherizationStartRequestCmd", AutherizationStartRequestCmd)
@@ -56,22 +52,19 @@ namespace CE::tcp
 
     void AutherizationStartRequestMsg::DeSerializeBody()
     {
-        JSONDocumentWrapper docWrapper(*(new Document()));
-        docWrapper.Parse(m_MsgPacket.GetBodyDataAsStr());
-        m_InitAuth = docWrapper.GetString("AuthInitCode");
+        json bodyJson = json::parse(m_MsgPacket.GetBodyDataAsStr());
+        m_InitAuth = bodyJson["AuthInitCode"].get<std::string>();        
     }
 
     void AutherizationStartRequestMsg::SerializeBody()
     {
-        JSONWriterWrapper writer;
-        writer.StartObject();
-        writer.String("AuthInitCode");
-        writer.String(m_InitAuth.c_str());
-        writer.EndObject();
-        std::string JSONStr = writer.GetBufferString();
-        m_MsgPacket.SetMsgBodySize( JSONStr.size());
+
+        json j = *this;
+        std::string jsonStr = j.dump(4); // 4-space indentation
+        m_MsgPacket.SetMsgBodySize( jsonStr.size());
         m_MsgPacket.SetIsEncrypted( false);
-        m_MsgPacket.SetBodyDataFromStr( JSONStr);
+        m_MsgPacket.SetBodyDataFromStr( jsonStr);   
+
     }
     //////////////////////////////////////////////////////////////////
 
@@ -105,23 +98,18 @@ namespace CE::tcp
 
     void EnableEncryptDecryptMsg::SerializeBody()
     {
-        JSONWriterWrapper writer;
-        writer.StartObject();
-        writer.String("NextIV");
-        std::string ivStr = m_nextIV.Base64Encode();
-        writer.String(ivStr.c_str());
-        writer.EndObject();
-        std::string JSONStr = writer.GetBufferString();
-        m_MsgPacket.SetMsgBodySize( JSONStr.size());
+
+        json j = *this;
+        std::string jsonStr = j.dump(4); // 4-space indentation
+        m_MsgPacket.SetMsgBodySize( jsonStr.size());
         m_MsgPacket.SetIsEncrypted( false);
-        m_MsgPacket.SetBodyDataFromStr( JSONStr);
+        m_MsgPacket.SetBodyDataFromStr( jsonStr);
+
     }
     void EnableEncryptDecryptMsg::DeSerializeBody()
     {
-        JSONDocumentWrapper docWrapper(*(new Document()));
-        docWrapper.Parse(m_MsgPacket.GetBodyDataAsStr() );
-        string nextIVStr = docWrapper.GetString("NextIV");
-        m_nextIV.Base64Decode(nextIVStr);
+        json bodyJson = json::parse(m_MsgPacket.GetBodyDataAsStr());
+        m_nextIV = bodyJson["m_nextIV"].get<CryptoBlockVector>();
     }
 
     //////////////////////////////////////////////////////////////////////ValidateIVMsg/
@@ -140,24 +128,26 @@ namespace CE::tcp
 
     void ValidateIVMsg::SerializeBody()
     {
-        JSONWriterWrapper writer;
-        writer.StartObject();
-        writer.String("IVToValidate");
-        std::string ivStr = IVToValidate.Base64Encode();
-        writer.String(ivStr.c_str());
-        writer.EndObject();
-        std::string JSONStr = writer.GetBufferString();
-        m_MsgPacket.SetMsgBodySize( JSONStr.size());
+        json j = *this;
+        std::string jsonStr = j.dump(4); // 4-space indentation
+        m_MsgPacket.SetMsgBodySize( jsonStr.size());
         m_MsgPacket.SetIsEncrypted( false);
-        m_MsgPacket.SetBodyDataFromStr( JSONStr);
+        m_MsgPacket.SetBodyDataFromStr( jsonStr);
     }
 
     void ValidateIVMsg::DeSerializeBody()
     {
-        JSONDocumentWrapper docWrapper(*(new Document()));
-        docWrapper.Parse( m_MsgPacket.GetBodyDataAsStr());
-        std::string ivStr = docWrapper.GetString("IVToValidate");
-        IVToValidate.Base64Decode(ivStr);
+        json jsonBody = json::parse(m_MsgPacket.GetBodyDataAsStr());
+        IVToValidate = jsonBody["IVToValidate"].get<CryptoBlockVector>();
+    }
+
+    void ValidateIVMsg::SetIVToValidate(CryptoBlockVector iv)
+    {
+        IVToValidate = iv;
+    }
+    CryptoBlockVector ValidateIVMsg::GetIVToValidate()
+    {
+        return IVToValidate;
     }
 
     //////////////////////////////////////////////////////////////////////ValidateIVMsg/
@@ -176,24 +166,29 @@ namespace CE::tcp
 
     void ValidateIVResultMsg::DeSerializeBody()
     {
-        JSONDocumentWrapper docWrapper(*(new Document()));
-        docWrapper.Parse( m_MsgPacket.GetBodyDataAsStr());
-        IsValid = docWrapper.GetBool("IVValid");
+
+        json jsonBody = json::parse(m_MsgPacket.GetBodyDataAsStr());
+        IsValid = jsonBody["IVValid"].get<bool>();
         
     }
     void ValidateIVResultMsg::SerializeBody()
     {
-        JSONWriterWrapper writer;
-        writer.StartObject();
-        writer.String("IVValid");
-        writer.Bool(IsValid);
-        writer.EndObject();
-        std::string JSONStr = writer.GetBufferString();
+        json j = *this;
+        std::string JSONStr = j.dump(4); // 4-space indentation
         m_MsgPacket.SetMsgBodySize( JSONStr.size());
         m_MsgPacket.SetIsEncrypted( false);
         m_MsgPacket.SetBodyDataFromStr( JSONStr);
 
     }
+
+    void ValidateIVResultMsg::SetIsValid(bool isValid)
+    {
+        IsValid = isValid;
+    }
+    bool ValidateIVResultMsg::GetIsValid()
+    {
+        return IsValid;
+    }   
 
     ///////////////////////////////////////////////////////////////////////////////////
 
@@ -213,20 +208,8 @@ namespace CE::tcp
 
     void UpdateKeyAndIVMsg::SerializeBody()
     {
-        JSONWriterWrapper writer;
-        writer.StartObject();
-
-        
-        std::string keyStr(m_IVAndKeyValues.key.Base64Encode());
-        std::string ivStr(m_IVAndKeyValues.iv.Base64Encode());
-
-        writer.String("Key");
-        writer.String(keyStr.c_str());
-        writer.String("IV");
-        writer.String(ivStr.c_str());
-        writer.EndObject();
-
-        std::string JSONStr = writer.GetBufferString();
+        json j = *this;
+        std::string JSONStr = j.dump(4);
         m_MsgPacket.SetMsgBodySize( JSONStr.size());
         m_MsgPacket.SetIsEncrypted( false);
         m_MsgPacket.SetBodyDataFromStr( JSONStr);   
@@ -234,14 +217,18 @@ namespace CE::tcp
 
     void UpdateKeyAndIVMsg::DeSerializeBody()
     {
-        JSONDocumentWrapper docWrapper(*(new Document()));
-        docWrapper.Parse( m_MsgPacket.GetBodyDataAsStr());
+        json jsonBody = json::parse(m_MsgPacket.GetBodyDataAsStr());
+        m_IVAndKeyValues = jsonBody["m_IVAndKeyValues"].get<IVAndKeyValues>();
 
-        std::string keyStr = docWrapper.GetString("Key");
-        std::string ivStr = docWrapper.GetString("IV");
 
-        m_IVAndKeyValues.key.Base64Decode(keyStr);
-        m_IVAndKeyValues.iv.Base64Decode(ivStr);
+//        JSONDocumentWrapper docWrapper(*(new Document()));
+//        docWrapper.Parse( m_MsgPacket.GetBodyDataAsStr());
+
+//        std::string keyStr = docWrapper.GetString("Key");
+//        std::string ivStr = docWrapper.GetString("IV");
+
+//        m_IVAndKeyValues.key.Base64Decode(keyStr);
+//        m_IVAndKeyValues.iv.Base64Decode(ivStr);
     }
 
     void UpdateKeyAndIVMsg::CreateNewKeyAndIV()
@@ -266,21 +253,26 @@ namespace CE::tcp
     }
     void DebugQueryMsg::SerializeBody()
     {
-        JSONWriterWrapper writer;
-        writer.StartObject();
-        writer.String("QueryStr");
-        writer.String(QueryStr.c_str());
-        writer.EndObject();
-        std::string JSONStr = writer.GetBufferString();
+        json j = *this;
+        std::string JSONStr = j.dump(4);
         m_MsgPacket.SetMsgBodySize( JSONStr.size());
         m_MsgPacket.SetIsEncrypted( false);
         m_MsgPacket.SetBodyDataFromStr( JSONStr);
     }
     void DebugQueryMsg::DeSerializeBody()
     {
-        JSONDocumentWrapper docWrapper(*(new Document()));
-        docWrapper.Parse( m_MsgPacket.GetBodyDataAsStr());
-        QueryStr = docWrapper.GetString("QueryStr");
+        json jsonBody = json::parse(m_MsgPacket.GetBodyDataAsStr());
+        QueryStr = jsonBody["QueryStr"].get<std::string>();
+
+    }
+
+    void DebugQueryMsg::SetQueryStr(std::string queryStr)
+    {
+        QueryStr = queryStr;
+    }
+    std::string DebugQueryMsg::GetQueryStr()
+    {
+        return QueryStr;
     }
 
 
@@ -297,21 +289,27 @@ namespace CE::tcp
     }
     void DebugResponseMsg::SerializeBody()
     {
-        JSONWriterWrapper writer;
-        writer.StartObject();
-        writer.String("ResponseStr");
-        writer.String(ResponseStr.c_str());
-        writer.EndObject();
-        std::string JSONStr = writer.GetBufferString();
+        json j = *this;
+        std::string JSONStr = j.dump(4);
         m_MsgPacket.SetMsgBodySize( JSONStr.size());
         m_MsgPacket.SetIsEncrypted( false);
         m_MsgPacket.SetBodyDataFromStr( JSONStr);
     }
     void DebugResponseMsg::DeSerializeBody()
     {
-        JSONDocumentWrapper docWrapper(*(new Document()));
-        docWrapper.Parse( m_MsgPacket.GetBodyDataAsStr());
-        ResponseStr = docWrapper.GetString("ResponseStr");
+
+        json jsonBody = json::parse(m_MsgPacket.GetBodyDataAsStr());
+        ResponseStr = jsonBody["ResponseStr"].get<std::string>();
+
+    }
+
+    void DebugResponseMsg::SetResponseStr(std::string responseStr)
+    {
+        ResponseStr = responseStr;
+    }
+    std::string DebugResponseMsg::GetResponseStr()
+    {
+        return ResponseStr;
     }
 
 

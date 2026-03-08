@@ -8,6 +8,7 @@
 #include <Msg.h>
 #include <vector>
 
+#include <EnumMsgIDMgr.h>
 namespace CE::tcp
 {
 
@@ -34,7 +35,8 @@ namespace CE::tcp
 
 
 
-    class TCPConnection : public IMsgProcessor, public ICreateMsgFromPacket
+    class TCPConnection : public IMsgProcessor, public ICreateMsgFromPacket, 
+        public Test::IMsgProcessor
     {
     public:
 
@@ -58,7 +60,7 @@ namespace CE::tcp
     protected:
         void ReadThreadFunction();   
         bool ProcessMsg(Msg& msg) override; 
-        Msg* CreateMsgFromPacketInternal(MsgPacket& packet) override;
+        Msg* CreateMsg(MsgPacket& packet) override;
         NamedThread *m_pReadThread;
         thread::id m_ReadThreadId;
         TCPConnectionStatus m_ConnectionStatus;
