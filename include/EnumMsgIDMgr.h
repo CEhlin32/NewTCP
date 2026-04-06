@@ -6,11 +6,11 @@
 #include <map>
 #include <EnumIDs.h>
 #include <Msg.h>
-
+#include <MsgProcessor.h>
 #include <nlohmann/json.hpp>
 using json = nlohmann::json_abi_v3_12_0::json;
 
-namespace Test
+namespace CE::tcp
 {
 
 
@@ -27,11 +27,12 @@ class EnumMsgIDMgr : public IEnumIDMgr
 
     protected:
         int GetNextID(int numOfIDs) override;
-    private:
         std::vector<AssignedEnumMsgIDs> m_AssignedEnumMsgIDs;
+    private:
         int m_NextBaseIndex = 0;
 };
 
+#ifdef OLD_CODE
 class IMsgCreator
 {
     public:
@@ -43,6 +44,7 @@ class IMsgProcessor
     public:
         virtual bool ProcessMsg(CE::tcp::Msg& msg) = 0;
 };  
+#endif
 
 class MsgManager : public EnumMsgIDMgr
 {
@@ -50,19 +52,22 @@ class MsgManager : public EnumMsgIDMgr
         static MsgManager& Get();
         ~MsgManager() = default;
 
-        bool AddToMsgCreators(std::string enumIDsName, IMsgCreator* creator);
-        IMsgCreator* GetMsgCreator(CE::tcp::MsgPacket& packet) const;
-        IMsgCreator* GetMsgCreator(std::string enumIDsName) const;
+        int AddEnumIDs(const EnumIDs& enumIDs) override;
+
+        bool AddToMsgCreators(std::string enumIDsName, ICreateMsgFromPacket* creator);
+        ICreateMsgFromPacket* GetMsgCreator(CE::tcp::MsgPacket& packet) const;
+        ICreateMsgFromPacket* GetMsgCreator(std::string enumIDsName) const;
 
         bool AddToMsgProcessors(std::string enumIDsName, IMsgProcessor* processor);
         std::vector<IMsgProcessor*> GetMsgProcessors(std::string enumIDsName) const;
-
+        std::string GetMsgNameFromID(int absID) const;
+        
     private:
         MsgManager() = default;
-        std::map<std::string, IMsgCreator*> m_MsgCreators; // enumIDsName -> creator
+        std::map<std::string, ICreateMsgFromPacket*> m_MsgCreators; // enumIDsName -> creator
         std::map<std::string, std::vector<IMsgProcessor*>> m_MsgProcessors; // enumIDsName -> list of processors
 };
 
-} // namespace Test
+} // namespace CE::tcp
 
 #endif // ENUM_MSG_ID_MGR_H

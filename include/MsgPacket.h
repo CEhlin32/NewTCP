@@ -95,7 +95,7 @@ namespace CE::tcp
         // Add members and methods as needed
         // @brief Get the name of the message packet
         // @return The name of the message packet
-        std::string GetName() const { return m_Name; }
+        std::string GetName() const {  return m_Name; }
         // @brief Get the prefix value of the packet
         // @return The prefix value of the packet
         int GetPrefix() const;  
@@ -158,6 +158,10 @@ namespace CE::tcp
         // @param size The size of the message body in bytes
         void SetMsgBodySize(size_t size)
         {
+            if(size > 0)
+            {
+                m_Data.IsEncrypted = true; // Mark packet as encrypted if body size is greater than 0, can be overridden by derived classes
+            }
             m_Data.MsgBodySize = static_cast<int>(size);
         }   
         // @brief Get the size of the message body
@@ -235,6 +239,9 @@ namespace CE::tcp
             int MsgID;
             int MsgBodySize;
             bool IsEncrypted;
+            uint8_t dummy1;
+            uint8_t dummy2;
+            uint8_t dummy3;
             int Postfix;
         };
         PacketHdrData m_Data;

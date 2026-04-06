@@ -1,6 +1,6 @@
-#include <MsgCmds.h>
-#include <CommonDefinitions.h>
 
+#include <CommonDefinitions.h>
+#ifdef OLD_CODE
 std::vector<std::string> MsgCmds::SystemCmdNames =
     {
     "AvailableCmdInfoCmd",
@@ -43,3 +43,4 @@ bool MsgCmds::GetCmdName(unsigned int cmdID, std::string & cmdName)
         result = false;
     return result;
 }
+#endif

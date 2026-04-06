@@ -1,10 +1,63 @@
 #include <SystemMsgs.h>
 #include <Msg.h>
-#include <MsgCmds.h>
+
 #include <EnumExtender.h>   
+#include <SystemMsgConstants.cs.h>
+#include <EnumMsgIDMgr.h>
+
+using namespace SharedSysMsgConstants;
+
 namespace CE::tcp
 
 {
+ 
+    TCPSystemMsgs::TCPSystemMsgs() : TCPSystemMsgCommandsName("TCPSystemCommands")
+    {
+        TCPSystemMsgEnumIDs = EnumIDs(TCPSystemMsgCommandsName, SharedSysMsgConstants::SystemCmdNames);
+    }
+
+    EnumIDs TCPSystemMsgs::GetTCPSystemMsgEnumIDs()
+    {
+        return TCPSystemMsgEnumIDs;
+    }   
+
+    Msg* TCPSystemMsgs::CreateMsg(MsgPacket& packet)
+    {
+        EnumExtenderManager& enumManager = TCPMsgEnumManager::Get();
+        int relID = enumManager.GetRelativeID(packet.GetMsgID(), "TCPSystemCommands");
+        switch(relID)
+        {
+            case EnableEncryptDecryptCmd:
+                return  new EnableEncryptDecryptMsg(packet);
+            case RequestKeyAndIVCmd:
+                return new RequestKeyAndIVMsg(packet);
+            case UpdateKeyAndIVCmd:
+                return new UpdateKeyAndIVMsg(packet); 
+            case KeepAliveCmd:
+                return new KeepAliveMsg(packet);
+            case RemoteConnectionOkCmd:
+                return new RemoteConnectionOkMsg(packet);
+            case AutherizationStartRequestCmd:
+                return new AutherizationStartRequestMsg(packet);
+            case AutherizationReadyCmd:
+                return new AutherizationReadyMsg(packet);
+            case AutherizationValidationCmd:
+                return new AutherizationValidationMsg(packet);
+            case ValidateIVCmd:
+                return new ValidateIVMsg(packet);
+            case ValidateIVResultCmd:
+                return new ValidateIVResultMsg(packet);
+            case DebugQueryCmd:
+                return new DebugQueryMsg(packet);
+            case DebugResponseCmd:
+                return new DebugResponseMsg(packet);
+            
+            default:
+                break;
+        }
+        return nullptr;
+    }
+    
     AvailableCmdInfoMsg::AvailableCmdInfoMsg() : Msg("AvailableCmdInfoCmd", AvailableCmdInfoCmd)
     {
     }
@@ -18,7 +71,9 @@ namespace CE::tcp
     void AvailableCmdInfoMsg::SerializeBody()
     {
         json j = TCPMsgEnumManager::Get();
-        std::string jsonStr = j.dump(4); // 4-space indentation
+        std::string jsonStr = j.dump(1); // 
+        
+        m_MsgPacket.SetBodyDataFromStr( jsonStr);
         m_MsgPacket.SetMsgBodySize( jsonStr.size());
 
 #if OLD_SERAILIZE        
@@ -41,10 +96,12 @@ namespace CE::tcp
     AutherizationStartRequestMsg::AutherizationStartRequestMsg() : 
         Msg("AutherizationStartRequestCmd", AutherizationStartRequestCmd)
     {
+        m_MsgPacket.SetIsEncrypted(false); // This message should not be encrypted
     }
     AutherizationStartRequestMsg::AutherizationStartRequestMsg(MsgPacket& packet) : 
         Msg("AutherizationStartRequest", packet)
     {
+        DeSerializeBody();
     }
     AutherizationStartRequestMsg::~AutherizationStartRequestMsg()
     {
@@ -53,16 +110,15 @@ namespace CE::tcp
     void AutherizationStartRequestMsg::DeSerializeBody()
     {
         json bodyJson = json::parse(m_MsgPacket.GetBodyDataAsStr());
-        m_InitAuth = bodyJson["AuthInitCode"].get<std::string>();        
+        CLIENT_AUTH_ID = bodyJson["CLIENT_AUTH_ID"].get<std::string>();        
     }
 
     void AutherizationStartRequestMsg::SerializeBody()
     {
 
         json j = *this;
-        std::string jsonStr = j.dump(4); // 4-space indentation
+        std::string jsonStr = j.dump(1); // 
         m_MsgPacket.SetMsgBodySize( jsonStr.size());
-        m_MsgPacket.SetIsEncrypted( false);
         m_MsgPacket.SetBodyDataFromStr( jsonStr);   
 
     }
@@ -70,7 +126,6 @@ namespace CE::tcp
 
     AutherizationReadyMsg::AutherizationReadyMsg() : Msg("AutherizationReadyCmd", AutherizationReadyCmd)
     {
-
     }
 
     AutherizationReadyMsg::AutherizationReadyMsg(MsgPacket& packet) : Msg("AutherizationReadyCmd", packet)
@@ -80,6 +135,67 @@ namespace CE::tcp
     AutherizationReadyMsg::~AutherizationReadyMsg()
     {
 
+    }
+
+    ////////////////////////////////////////////////////////////////
+
+    AutherizationValidationMsg::AutherizationValidationMsg() : Msg("AutherizationValidationCmd", AutherizationValidationCmd)
+    {
+    }
+    AutherizationValidationMsg::AutherizationValidationMsg(MsgPacket& packet) : Msg("AutherizationValidationCmd", packet)
+    {
+        DeSerializeBody();
+    }
+    AutherizationValidationMsg::~AutherizationValidationMsg()
+    {
+    }
+    void AutherizationValidationMsg::SerializeBody()
+    {
+        json j = *this;
+        std::string jsonStr = j.dump(1); // 
+        m_MsgPacket.SetMsgBodySize( jsonStr.size());
+        
+        m_MsgPacket.SetBodyDataFromStr( jsonStr);   
+    }
+    void AutherizationValidationMsg::DeSerializeBody()
+    {
+        json jsonBody = json::parse(m_MsgPacket.GetBodyDataAsStr());
+        IV_TO_VALIDATE = jsonBody["IV_TO_VALIDATE"].get<CryptoBlockVector>();
+    }
+
+    ////////////////////////////////////////////////////////////////
+    AutherizationValidationResponseMsg::AutherizationValidationResponseMsg() : Msg("AutherizationValidationResponseCmd", AutherizationValidationResponseCmd)
+    {
+    }
+    AutherizationValidationResponseMsg::AutherizationValidationResponseMsg(MsgPacket& packet) : Msg("AutherizationValidationResponseCmd", packet)
+    {
+        DeSerializeBody();
+    }
+    AutherizationValidationResponseMsg::~AutherizationValidationResponseMsg()
+    {
+    }
+    void AutherizationValidationResponseMsg::SerializeBody()
+    {
+        json j = *this;
+        std::string jsonStr = j.dump(1); // 
+        m_MsgPacket.SetMsgBodySize( jsonStr.size());
+        m_MsgPacket.SetBodyDataFromStr( jsonStr);   
+    }
+    void AutherizationValidationResponseMsg::DeSerializeBody()
+    {
+        json jsonBody = json::parse(m_MsgPacket.GetBodyDataAsStr());
+        IV_IS_VALID = jsonBody["IV_IS_VALID"].get<bool>();
+    }
+
+    ////////////////////////////////////////////////////////////////
+    AutherizationEndMsg::AutherizationEndMsg() : Msg("AutherizationEndCmd", AutherizationEndCmd)
+    {
+    }   
+    AutherizationEndMsg::AutherizationEndMsg(MsgPacket& packet) : Msg("AutherizationEndCmd", packet)
+    {
+    }
+    AutherizationEndMsg::~AutherizationEndMsg()
+    {
     }
     ////////////////////////////////////////////////////////////////
 
@@ -96,11 +212,12 @@ namespace CE::tcp
     {
     }
 
+    #if OLD_CODE
     void EnableEncryptDecryptMsg::SerializeBody()
     {
 
         json j = *this;
-        std::string jsonStr = j.dump(4); // 4-space indentation
+        std::string jsonStr = j.dump(1); // 
         m_MsgPacket.SetMsgBodySize( jsonStr.size());
         m_MsgPacket.SetIsEncrypted( false);
         m_MsgPacket.SetBodyDataFromStr( jsonStr);
@@ -109,8 +226,9 @@ namespace CE::tcp
     void EnableEncryptDecryptMsg::DeSerializeBody()
     {
         json bodyJson = json::parse(m_MsgPacket.GetBodyDataAsStr());
-        m_nextIV = bodyJson["m_nextIV"].get<CryptoBlockVector>();
+        NEXT_IV = bodyJson["NEXT_IV"].get<CryptoBlockVector>();
     }
+#endif
 
     //////////////////////////////////////////////////////////////////////ValidateIVMsg/
 
@@ -120,6 +238,7 @@ namespace CE::tcp
     ValidateIVMsg::ValidateIVMsg(MsgPacket& packet) : 
         Msg("ValidateIVCmd", packet)
     {
+        DeSerializeBody();
     }
 
     ValidateIVMsg::~ValidateIVMsg()
@@ -129,25 +248,24 @@ namespace CE::tcp
     void ValidateIVMsg::SerializeBody()
     {
         json j = *this;
-        std::string jsonStr = j.dump(4); // 4-space indentation
+        std::string jsonStr = j.dump(1); // 
         m_MsgPacket.SetMsgBodySize( jsonStr.size());
-        m_MsgPacket.SetIsEncrypted( false);
         m_MsgPacket.SetBodyDataFromStr( jsonStr);
     }
 
     void ValidateIVMsg::DeSerializeBody()
     {
         json jsonBody = json::parse(m_MsgPacket.GetBodyDataAsStr());
-        IVToValidate = jsonBody["IVToValidate"].get<CryptoBlockVector>();
+        IV_TO_VALIDATE = jsonBody["IV_TO_VALIDATE"].get<CryptoBlockVector>();
     }
 
     void ValidateIVMsg::SetIVToValidate(CryptoBlockVector iv)
     {
-        IVToValidate = iv;
+        IV_TO_VALIDATE = iv;
     }
     CryptoBlockVector ValidateIVMsg::GetIVToValidate()
     {
-        return IVToValidate;
+        return IV_TO_VALIDATE;
     }
 
     //////////////////////////////////////////////////////////////////////ValidateIVMsg/
@@ -158,6 +276,7 @@ namespace CE::tcp
     ValidateIVResultMsg::ValidateIVResultMsg(MsgPacket& packet) : 
         Msg("ValidateIVResultCmd", packet)
     {
+        DeSerializeBody();
     }
 
     ValidateIVResultMsg::~ValidateIVResultMsg()
@@ -168,26 +287,25 @@ namespace CE::tcp
     {
 
         json jsonBody = json::parse(m_MsgPacket.GetBodyDataAsStr());
-        IsValid = jsonBody["IVValid"].get<bool>();
+        IV_IS_VALID = jsonBody["IV_IS_VALID"].get<bool>();
         
     }
     void ValidateIVResultMsg::SerializeBody()
     {
         json j = *this;
-        std::string JSONStr = j.dump(4); // 4-space indentation
+        std::string JSONStr = j.dump(1); // 
         m_MsgPacket.SetMsgBodySize( JSONStr.size());
-        m_MsgPacket.SetIsEncrypted( false);
         m_MsgPacket.SetBodyDataFromStr( JSONStr);
 
     }
 
     void ValidateIVResultMsg::SetIsValid(bool isValid)
     {
-        IsValid = isValid;
+        IV_IS_VALID = isValid;
     }
     bool ValidateIVResultMsg::GetIsValid()
     {
-        return IsValid;
+        return IV_IS_VALID;
     }   
 
     ///////////////////////////////////////////////////////////////////////////////////
@@ -200,6 +318,7 @@ namespace CE::tcp
     UpdateKeyAndIVMsg::UpdateKeyAndIVMsg(MsgPacket& packet) : 
         Msg("UpdateKeyAndIVCmd", packet)
     {
+        DeSerializeBody();
     }
 
     UpdateKeyAndIVMsg::~UpdateKeyAndIVMsg()
@@ -209,16 +328,27 @@ namespace CE::tcp
     void UpdateKeyAndIVMsg::SerializeBody()
     {
         json j = *this;
-        std::string JSONStr = j.dump(4);
+        std::string JSONStr = j.dump(1);
         m_MsgPacket.SetMsgBodySize( JSONStr.size());
-        m_MsgPacket.SetIsEncrypted( false);
-        m_MsgPacket.SetBodyDataFromStr( JSONStr);   
+        m_MsgPacket.SetBodyDataFromStr( JSONStr);
+
+        std::cout << "UPDATE KEY_IV Setting Key to: ";
+        for (int i = 0; i < 16; ++i) {
+            printf("%u ", IV_AND_KEY.KEY[i]);
+        }
+        printf("\n");
+
+        std::cout << "UPDATE KEY_IV Setting IV to: ";
+        for (int i = 0; i < 16; ++i) {
+            printf("%u ", IV_AND_KEY.IV[i]);
+        }
+        printf("\n");
     }
 
     void UpdateKeyAndIVMsg::DeSerializeBody()
     {
         json jsonBody = json::parse(m_MsgPacket.GetBodyDataAsStr());
-        m_IVAndKeyValues = jsonBody["m_IVAndKeyValues"].get<IVAndKeyValues>();
+        IV_AND_KEY = jsonBody["IV_AND_KEY"].get<IVAndKeyValues>();
 
 
 //        JSONDocumentWrapper docWrapper(*(new Document()));
@@ -227,16 +357,24 @@ namespace CE::tcp
 //        std::string keyStr = docWrapper.GetString("Key");
 //        std::string ivStr = docWrapper.GetString("IV");
 
-//        m_IVAndKeyValues.key.Base64Decode(keyStr);
-//        m_IVAndKeyValues.iv.Base64Decode(ivStr);
+//        IV_AND_KEY.key.Base64Decode(keyStr);
+//        IV_AND_KEY.iv.Base64Decode(ivStr);
     }
 
     void UpdateKeyAndIVMsg::CreateNewKeyAndIV()
     {
-        m_IVAndKeyValues = AESAccessManagement::Get()->CreateIVAndKey();
+        IV_AND_KEY = AESAccessManagement::Get()->CreateIVAndKey();
     }
 
+    CryptoBlockVector UpdateKeyAndIVMsg::GetIV()
+    {
+        return IV_AND_KEY.IV;
+    }   
 
+    CryptoBlockVector UpdateKeyAndIVMsg::GetKey()
+    {
+        return IV_AND_KEY.KEY;
+    }
     //////////////////////////////////////////////////////////////////////ValidateIVMsg/
     DebugQueryMsg::DebugQueryMsg() : Msg("DebugQueryCmd", DebugQueryCmd) 
     {
@@ -245,7 +383,7 @@ namespace CE::tcp
     DebugQueryMsg::DebugQueryMsg(MsgPacket& packet) : 
         Msg("DebugQueryCmd", packet)
     {
-        
+        DeSerializeBody();
     }
 
     DebugQueryMsg::~DebugQueryMsg()
@@ -254,25 +392,24 @@ namespace CE::tcp
     void DebugQueryMsg::SerializeBody()
     {
         json j = *this;
-        std::string JSONStr = j.dump(4);
+        std::string JSONStr = j.dump(1);
         m_MsgPacket.SetMsgBodySize( JSONStr.size());
-        m_MsgPacket.SetIsEncrypted( false);
         m_MsgPacket.SetBodyDataFromStr( JSONStr);
     }
     void DebugQueryMsg::DeSerializeBody()
     {
         json jsonBody = json::parse(m_MsgPacket.GetBodyDataAsStr());
-        QueryStr = jsonBody["QueryStr"].get<std::string>();
+        QUERY_STR = jsonBody["QUERY_STR"].get<std::string>();
 
     }
 
     void DebugQueryMsg::SetQueryStr(std::string queryStr)
     {
-        QueryStr = queryStr;
+        QUERY_STR = queryStr;
     }
     std::string DebugQueryMsg::GetQueryStr()
     {
-        return QueryStr;
+        return QUERY_STR;
     }
 
 
@@ -283,6 +420,7 @@ namespace CE::tcp
     DebugResponseMsg::DebugResponseMsg(MsgPacket& packet) : 
         Msg("DebugResponseCmd", packet)
     {
+        DeSerializeBody();
     }
     DebugResponseMsg::~DebugResponseMsg()
     {
@@ -290,26 +428,26 @@ namespace CE::tcp
     void DebugResponseMsg::SerializeBody()
     {
         json j = *this;
-        std::string JSONStr = j.dump(4);
+        std::string JSONStr = j.dump(1);
         m_MsgPacket.SetMsgBodySize( JSONStr.size());
-        m_MsgPacket.SetIsEncrypted( false);
+        
         m_MsgPacket.SetBodyDataFromStr( JSONStr);
     }
     void DebugResponseMsg::DeSerializeBody()
     {
 
         json jsonBody = json::parse(m_MsgPacket.GetBodyDataAsStr());
-        ResponseStr = jsonBody["ResponseStr"].get<std::string>();
+        RESPONSE_STR = jsonBody["RESPONSE_STR"].get<std::string>();
 
     }
 
     void DebugResponseMsg::SetResponseStr(std::string responseStr)
     {
-        ResponseStr = responseStr;
+        RESPONSE_STR = responseStr;
     }
     std::string DebugResponseMsg::GetResponseStr()
     {
-        return ResponseStr;
+        return RESPONSE_STR;
     }
 
 

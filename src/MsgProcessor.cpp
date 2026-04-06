@@ -1,5 +1,5 @@
 #include <MsgProcessor.h>
-#include <MsgCmds.h>
+
 #include <Msg.h>
 #include <SystemMsgs.h>
 
@@ -42,6 +42,15 @@ namespace CE::tcp
         }
     }
 
+    bool MsgProcessor::ProcessMsg(Msg* pMsg)
+    {
+        bool completed = false;
+        for(int i = 0; i < m_MsgProcessors.size(); ++i)
+        {
+            completed |= m_MsgProcessors[i]->ProcessMsg(*pMsg);
+        }   
+        return completed;
+    }
     bool MsgProcessor::ProcessMsgFromPacket(MsgPacket& packet)
     {
         bool completed = false;

@@ -6,12 +6,18 @@
 #include <CryptoKeyIV.h>
 #include <AESSupport.h>
 #include <EnumExtender.h>
-#include <MsgCmds.h>
+#include <EnumIDs.h>
+
 #include <nlohmann/json.hpp>
+#include <MsgProcessor.h>
+#include <SystemMsgConstants.cs.h>
+
 using json = nlohmann::json_abi_v3_12_0::json;
 
 namespace CE::tcp
 {
+
+
     class TCPMsgEnumManager : public EnumExtenderManager
     {
     public:
@@ -23,10 +29,46 @@ namespace CE::tcp
 
         TCPMsgEnumManager() : EnumExtenderManager("TCPMsgEnumManager")
         {
-            AddEnumExtender("TCPMsgCommands", MsgCmds::SystemCmdNames);
+            AddEnumExtender("TCPSystemCommands", SharedSysMsgConstants::SystemCmdNames);
         }
     };
 
+    class TCPSystemMsgs : public CE::tcp::ICreateMsgFromPacket
+    {
+    public:
+            static TCPSystemMsgs& GetInstance()
+            {
+                static TCPSystemMsgs instance;
+                return instance;
+            }
+
+        EnumIDs GetTCPSystemMsgEnumIDs();
+    private:
+            TCPSystemMsgs();
+            TCPSystemMsgs(const TCPSystemMsgs&) = delete;
+            TCPSystemMsgs& operator=(const TCPSystemMsgs&) = delete;
+            Msg* CreateMsg(CE::tcp::MsgPacket& packet) override;
+        const std::string TCPSystemMsgCommandsName;
+        EnumIDs TCPSystemMsgEnumIDs;
+        int baseID = 0;
+    };
+
+
+#ifdef OLD_CDOE
+    class SystemMsgCreator : public ICreateMsgFromPacket
+    {
+        public:
+            static SystemMsgCreator& GetInstance()
+            {
+                static SystemMsgCreator instance;
+                return instance;
+            }
+        private:    
+            SystemMsgCreator();
+            Msg* CreateMsg(MsgPacket& packet) override;
+    };
+
+#endif
 
     class AvailableCmdInfoMsg : public Msg
     {
@@ -54,7 +96,7 @@ class AutherizationStartRequestMsg : public Msg
 
         std::string GetInitValue()
         {
-            return m_InitAuth;
+            return CLIENT_AUTH_ID;
         }
 
     protected:    
@@ -63,8 +105,8 @@ class AutherizationStartRequestMsg : public Msg
 
 
     private:
-        std::string m_InitAuth;
-        NLOHMANN_DEFINE_TYPE_INTRUSIVE(AutherizationStartRequestMsg, m_InitAuth)
+        std::string CLIENT_AUTH_ID;
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE(AutherizationStartRequestMsg, CLIENT_AUTH_ID)
         
 };
 
@@ -86,23 +128,62 @@ class EnableEncryptDecryptMsg: public Msg
         EnableEncryptDecryptMsg(MsgPacket& packet);
         virtual ~EnableEncryptDecryptMsg();
 
-        CryptoBlockVector GetEncryptionIV()
+#if OLD_CODE        
+        CryptoBlockVector GetNextIV()
         {
-            if( true == m_MsgPacket.GetIsEncrypted())
-                return m_nextIV;
-
-            return defaultIV;
+            return NEXT_IV;
+        }
+        CryptoBlockVector GetNewKey()
+        {
+            return newKey;
         }
         
-        CryptoBlockVector m_nextIV;
+        CryptoBlockVector NEXT_IV;
 
     protected:    
         void SerializeBody() override ;
         void DeSerializeBody() override ;
 
     private:
-    inline static CryptoBlockVector defaultIV;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(EnableEncryptDecryptMsg, m_nextIV)
+    CryptoBlockVector newKey;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(EnableEncryptDecryptMsg, NEXT_IV)
+#endif
+};
+
+class AutherizationValidationMsg : public Msg
+{
+public:
+    AutherizationValidationMsg();
+    AutherizationValidationMsg(MsgPacket& packet);
+    virtual ~AutherizationValidationMsg();
+
+    void SerializeBody() override ;
+    void DeSerializeBody() override ;
+
+    CryptoBlockVector IV_TO_VALIDATE;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(AutherizationValidationMsg, IV_TO_VALIDATE)
+};
+class AutherizationValidationResponseMsg : public Msg
+{
+public:
+    AutherizationValidationResponseMsg();
+    AutherizationValidationResponseMsg(MsgPacket& packet);
+    virtual ~AutherizationValidationResponseMsg();
+
+    void SerializeBody() override ;
+    void DeSerializeBody() override ;
+
+    bool IV_IS_VALID;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(AutherizationValidationResponseMsg, IV_IS_VALID)
+};
+
+class AutherizationEndMsg : public Msg
+{
+public:
+    AutherizationEndMsg();
+    AutherizationEndMsg(MsgPacket& packet);
+    virtual ~AutherizationEndMsg();
 };
 
 class RequestKeyAndIVMsg: public Msg
@@ -142,12 +223,15 @@ public:
     UpdateKeyAndIVMsg(MsgPacket& packet);
     virtual ~UpdateKeyAndIVMsg();
 
+    CryptoBlockVector GetIV();
+    CryptoBlockVector GetKey();
+
     void CreateNewKeyAndIV();
 protected:    
     void SerializeBody() override ;
     void DeSerializeBody() override ;
-    IVAndKeyValues m_IVAndKeyValues;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(UpdateKeyAndIVMsg, m_IVAndKeyValues)
+    IVAndKeyValues IV_AND_KEY;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(UpdateKeyAndIVMsg, IV_AND_KEY)
 };
 class ValidateIVMsg :  public Msg
 {
@@ -162,8 +246,8 @@ protected:
     void SerializeBody() override ;
     void DeSerializeBody() override ;
 
-    CryptoBlockVector IVToValidate;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ValidateIVMsg, IVToValidate)
+    CryptoBlockVector IV_TO_VALIDATE;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ValidateIVMsg, IV_TO_VALIDATE)
 };
 
 class ValidateIVResultMsg : public Msg
@@ -178,8 +262,8 @@ protected:
     void DeSerializeBody() override ;
     void SerializeBody() override ;
 
-    bool IsValid;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ValidateIVResultMsg, IsValid)
+    bool IV_IS_VALID;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ValidateIVResultMsg, IV_IS_VALID)
 };
 
 
@@ -197,8 +281,8 @@ public:
 protected:    
     void SerializeBody() override;
     void DeSerializeBody() override ;
-    std::string QueryStr;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(DebugQueryMsg, QueryStr)
+    std::string QUERY_STR;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(DebugQueryMsg, QUERY_STR)
 };
 
 class DebugResponseMsg : public Msg
@@ -215,8 +299,8 @@ public:
 protected:    
     void SerializeBody() override;
     void DeSerializeBody() override ;
-    std::string ResponseStr; 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(DebugResponseMsg, ResponseStr)
+    std::string RESPONSE_STR; 
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(DebugResponseMsg, RESPONSE_STR)
 };
 }
 #endif // NEW_SYSTEM_MSGS_H

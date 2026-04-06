@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 
+#ifdef OLD_CODE
 enum MsgCommands
 {
     AvailableCmdInfoCmd = 0,
@@ -36,7 +37,7 @@ class MsgCmds
 
 //////////////////////////////////////////////////////////////////////////
 
-
+#endif // OLD_CODE
 
 
 #endif // MSGCMDS_H

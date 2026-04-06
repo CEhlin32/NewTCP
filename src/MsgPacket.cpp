@@ -12,6 +12,9 @@ namespace CE::tcp
         m_Data.MsgID = TCPMsgEnumManager::Get().GetAbsoluteID(name);
         m_Data.MsgBodySize = 0;
         m_Data.IsEncrypted = false;
+        m_Data.dummy1 = 0;
+        m_Data.dummy2 = 0;
+        m_Data.dummy3 = 0;
         m_Data.Postfix = 0xBEEFDEAD; // Example postfix
         ServerType = LOCAL_SERVER;
     }
@@ -36,7 +39,7 @@ namespace CE::tcp
 
     int MsgPacket::GetRelID()
     {
-        return TCPMsgEnumManager::Get().GetRelativeID(m_Data.MsgID, "TCPMsgCommands");
+        return TCPMsgEnumManager::Get().GetRelativeID(m_Data.MsgID, "TCPSystemCommands");
     }
 
     int MsgPacket::GetAbsID()

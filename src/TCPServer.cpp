@@ -57,7 +57,9 @@ namespace CE::tcp
             std::cerr << "Failed to create socket" << std::endl;
             return false;
         }
-
+        int opt = 1;
+        setsockopt(m_server_socket_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt));
+ 
         std::memset(&m_server_addr, 0, sizeof(m_server_addr));
         m_server_addr.sin_family = AF_INET;
         m_server_addr.sin_addr.s_addr = INADDR_ANY;
@@ -94,10 +96,10 @@ namespace CE::tcp
                 close(m_server_socket_fd);
                 continue;
             }
-            for (auto conn : m_tcpConnections)
+            for (size_t n = 0; n < m_tcpConnections.size(); n++)
             {
-                TCPConnection tcpConnection = *conn;
-                if( tcpConnection.GetConnectionStatus() == TCPConnectionStatus::Connection_Available)
+                TCPConnection* conn = m_tcpConnections[n];
+                if( conn->GetConnectionStatus() == TCPConnectionStatus::Connection_Available)
                 {
                     conn->SetSocketFd(client_socket);
                     conn->StartReadThread();
@@ -109,8 +111,9 @@ namespace CE::tcp
 
     void TCPServer::StopServer()
     {
-        for (auto connection : m_tcpConnections)
+        for (size_t n = 0; n < m_tcpConnections.size(); n++)
         {
+            TCPConnection* connection = m_tcpConnections[n];
             connection->StopReadThread();
             delete connection;
         }
@@ -130,8 +133,9 @@ namespace CE::tcp
     bool TCPServer::SendToAll(Msg& msg)
     {
         bool result = true;
-        for (auto connection : m_tcpConnections)
+        for (size_t n = 0; n < m_tcpConnections.size(); n++)
         {
+            TCPConnection* connection = m_tcpConnections[n];
             if (!connection->Send(msg))
             {
                 result = false;

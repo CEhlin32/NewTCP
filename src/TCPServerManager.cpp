@@ -1,7 +1,7 @@
 #include <TCPServerManager.h>
 #include <TCPServer.h>
 #include <DebReport.h>
-
+#include <SystemMsgConstants.cs.h>
 namespace CE::tcp
 {
 
@@ -14,9 +14,14 @@ namespace CE::tcp
         return theInstance;
     }
 
-    TCPServerManager::TCPServerManager(const std::string& controllerName)
+    TCPServerManager::TCPServerManager(const std::string& controllerName) :
+         SystemMsgEnumIDs("TCPSystemCommands", SharedSysMsgConstants::SystemCmdNames)
     {
         theInstance = this;
+        baseID = CE::tcp::MsgManager::Get().AddEnumIDs(SystemMsgEnumIDs);
+
+
+        TCPSystemMsgs::GetInstance(); // make sure it is initialized and registered as a MsgCreator
         m_ControllerName = controllerName;
         m_NumberOfConnections = 0;
         m_NumberOfLocalConnecions = 0;
@@ -24,12 +29,13 @@ namespace CE::tcp
         m_MaxConnections = 5;
         m_Error = 0;
 
+#ifdef OLD_CODE    
         // Default Ports
         m_remotePort = 51717;
         m_localPort = 51718;
         m_pairingPort = 51719;
         m_debugPort = 51720;
-
+#endif
         m_pUDPServer = nullptr;
     }
 
@@ -75,28 +81,28 @@ void TCPServerManager::PrintCurrentServerStatus(LogOption& cat)
         case PAIRING_SERVER:
         {
             pServer = new TCPServer(PAIRING_SERVER);
-            pServer->StartServer(m_pairingPort, 1);
+            pServer->StartServer(SharedSysMsgConstants::PAIRING_PORT, 1);
             break;
         }
 
         case DEBUG_SERVER:
         {
             pServer = new TCPServer(DEBUG_SERVER);
-            pServer->StartServer(m_debugPort,1);
+            pServer->StartServer(SharedSysMsgConstants::DEBUG_PORT,1);
             break;
         }
 
         case LOCAL_SERVER:
         {
             pServer = new TCPServer(LOCAL_SERVER);
-            pServer->StartServer(m_localPort,2);
+            pServer->StartServer(SharedSysMsgConstants::LOCAL_PORT,2);
             break;
         }
 
         case REMOTE_SERVER:
         {
             pServer = new TCPServer(REMOTE_SERVER);
-            pServer->StartServer(m_remotePort,2);
+            pServer->StartServer(SharedSysMsgConstants::REMOTE_PORT,2);
             break;
         }
 

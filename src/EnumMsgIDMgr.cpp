@@ -1,6 +1,7 @@
 #include <EnumMsgIDMgr.h>
+#include <SystemMsgs.h>
 
-namespace Test
+namespace CE::tcp
 {
         int EnumMsgIDMgr::AddEnumIDs(const EnumIDs& enumIDs)
         {
@@ -28,7 +29,7 @@ namespace Test
             json j;
             j["m_AssignedEnumMsgIDs"] = m_AssignedEnumMsgIDs;
             j["m_NextBaseIndex"] = m_NextBaseIndex;
-            return j.dump(4); // 4-space indentation
+            return j.dump(1); // 
         }
         void EnumMsgIDMgr::DeSerialize(const std::string& str)
         {
@@ -51,7 +52,20 @@ namespace Test
             static MsgManager instance;
             return instance;
         }
-        bool MsgManager::AddToMsgCreators(std::string enumIDsName, IMsgCreator* creator)
+
+        int MsgManager::AddEnumIDs(const EnumIDs& enumIDs)
+        {
+            if( m_AssignedEnumMsgIDs.size() == 0 )
+            {
+                // make sure SystemMsgs is initialized and registered as a MsgCreator
+                TCPSystemMsgs& systemMsgs =  TCPSystemMsgs::GetInstance(); 
+                MsgProcessor::AddMsgCreator((ICreateMsgFromPacket*) &TCPSystemMsgs::GetInstance());
+                EnumMsgIDMgr::AddEnumIDs(systemMsgs.GetTCPSystemMsgEnumIDs());
+            }
+            return EnumMsgIDMgr::AddEnumIDs(enumIDs);
+        }
+
+        bool MsgManager::AddToMsgCreators(std::string enumIDsName, ICreateMsgFromPacket* creator)
         {
             if(m_MsgCreators.find(enumIDsName) != m_MsgCreators.end())
             {
@@ -61,7 +75,7 @@ namespace Test
             return true;
         }
 
-        IMsgCreator* MsgManager::GetMsgCreator(CE::tcp::MsgPacket& packet) const
+        ICreateMsgFromPacket* MsgManager::GetMsgCreator(CE::tcp::MsgPacket& packet) const
         {
             int absID = packet.GetAbsID();
             AssignedEnumMsgIDs assignedIDs = GetEnumIDsFor(absID);
@@ -78,7 +92,7 @@ namespace Test
             return nullptr; // No creator found for the enumIDs
         }
 
-        IMsgCreator* MsgManager::GetMsgCreator(std::string enumIDsName) const
+        ICreateMsgFromPacket* MsgManager::GetMsgCreator(std::string enumIDsName) const
         {
             auto it = m_MsgCreators.find(enumIDsName);
             if(it != m_MsgCreators.end())            
@@ -99,6 +113,17 @@ namespace Test
             m_MsgProcessors[enumIDsName] = {processor};
             return true;
         }
+
+        std::string MsgManager::GetMsgNameFromID(int absID) const
+        {
+            AssignedEnumMsgIDs assignedIDs = GetEnumIDsFor(absID);
+            if(assignedIDs.GetBaseIndex() == -1)
+            {
+                return ""; // No matching enumIDs found
+            }
+            return assignedIDs.GetEnumValueName(absID - assignedIDs.GetBaseIndex());
+        }
+
         std::vector<IMsgProcessor*> MsgManager::GetMsgProcessors(std::string enumIDsName) const
         {
             auto it = m_MsgProcessors.find(enumIDsName);

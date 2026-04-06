@@ -28,7 +28,8 @@ namespace CE::tcp
     private:
 
         inline static TCPServerManager* theInstance;
-
+        EnumIDs SystemMsgEnumIDs;
+        int baseID;
         std::string m_ControllerName;
         std::vector<CE::tcp::TCPServer*> m_activeServers;
 
@@ -38,11 +39,12 @@ namespace CE::tcp
         int m_NumberOfConnections;
         int m_Error;
 
+#ifdef OLD_CODE        
         int m_remotePort;
         int m_localPort;
         int m_pairingPort;
         int m_debugPort;
-
+#endif
         UDPServer* m_pUDPServer;
     };
 

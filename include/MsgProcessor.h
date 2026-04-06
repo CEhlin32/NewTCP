@@ -85,6 +85,9 @@ namespace CE::tcp
         // @param packet The message packet to process
         // @return True if the message was successfully processed, false otherwise
         static bool ProcessMsgFromPacket(MsgPacket& packet);
+        
+        static bool ProcessMsg(Msg* pMsg);
+
         // @brief Create a message from a packet using registered creators
         // @param packet The message packet to create a message from
         // @return Pointer to the created message, or nullptr if creation failed

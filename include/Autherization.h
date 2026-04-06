@@ -17,6 +17,7 @@ namespace CE::tcp
         virtual ~Autherization();
         void StartAutherizationMode(const std::string& clientPinStr);
         void  StopAutherizationMode( );
+        bool IsInAutherization() const;
 
         CryptoBlockVector GetKey();
         CryptoBlockVector GetIV();
@@ -31,7 +32,7 @@ namespace CE::tcp
         std::string m_serverPinStr;
         CryptoBlockVector m_Key;
         CryptoBlockVector m_IV;
-
+        bool InProgress;
 
     };
 } // namespace CE::tcp

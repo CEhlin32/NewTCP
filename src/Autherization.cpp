@@ -23,7 +23,7 @@ namespace CE::tcp
         return Autherization::theInstance;
     }
 
-    Autherization::Autherization() :    m_Key(), m_IV()
+    Autherization::Autherization() :    m_Key(), m_IV(), InProgress(false)
     {
         srand((unsigned)time(NULL));
 
@@ -36,13 +36,14 @@ namespace CE::tcp
 
     void Autherization::StartAutherizationMode(const std::string& clientPinStr)
     {
+        InProgress = true;
         InitPin();
         m_clientPinStr = clientPinStr;
         std::string KeyStr = m_serverPinStr + m_clientPinStr;
         std::string IVStr = m_clientPinStr + m_serverPinStr;
 
-        m_Key.SetBuf((uint8_t*)KeyStr.data(), KeyStr.length());
-        m_IV.SetBuf((uint8_t*)IVStr.data(), IVStr.length());
+        m_Key.SetBuf(KeyStr);
+        m_IV.SetBuf(IVStr);
 
 
         // Stop and Display message from anyhere but her
@@ -61,8 +62,14 @@ namespace CE::tcp
         TheAppLogger.LogMsgWithTime(LogAlways::instance(), "Pin string:  %s\n", m_serverPinStr.c_str());
     }
 
+    bool Autherization::IsInAutherization() const
+    {
+        return InProgress;
+    }
+
     void Autherization::StopAutherizationMode()
     {
+        InProgress = false;
         LCD_Display::Get()->SwitchDisplayScreen(0);
     }
     void Autherization::InitPin()
