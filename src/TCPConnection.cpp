@@ -27,6 +27,7 @@ namespace CE::tcp
         m_socket_fd(-1), 
         m_pReadThread(nullptr),
         m_KeepAlive(true),
+        EncryptionSetupComplete(false),
         m_Pairing(false)
     {
         m_ConnectionStatus.status = TCPConnectionStatus::Connection_Available;
@@ -95,6 +96,8 @@ namespace CE::tcp
         AvailableCmdInfoMsg cmdInfoMsg;
         Send(cmdInfoMsg);
 #endif
+        m_Pairing = false; // Reset pairing mode when starting read thread for a new connection
+        EncryptionSetupComplete = false;
         // Implementation for reading data from the socket
         while(m_KeepAlive == true)
         {
@@ -488,15 +491,18 @@ namespace CE::tcp
     {
         if(m_Pairing == false)
         {
+            int id = packet.GetMsgID();
+
             printf("*******************\n Attempting to decrypt Msg %s NOT in pairing mode\n\t IV =", MsgManager::Get().GetMsgNameFromID(packet.GetMsgID()).c_str());
             for (int i = 0; i < 16; ++i) 
             {
                 printf("%u ", m_aes_decrypt.GetIV()[i]);
             }
+            printf("\n**********\n\n");
+
             const IVToKeyMap ivToKeyMap =  AESAccessManagement::Get()->GetIVToKeyMap();
-            for(const auto& ivKeyPair : ivToKeyMap)
+            if(EncryptionSetupComplete == true )
             {
-                m_aes_decrypt.AES_init_ctx_iv(ivKeyPair.second, ivKeyPair.first);
                 std::vector<uint8_t> decryptedData = m_aes_decrypt.AES_CBC_decrypt_buffer(packet.GetPacketDataAsBytes());
                 if(decryptedData.size() > 0)
                 {
@@ -507,6 +513,25 @@ namespace CE::tcp
                         return pMsg;
                     }
                 }
+            }
+            else
+            {
+                for(const auto& ivKeyPair : ivToKeyMap)
+                {
+                    m_aes_decrypt.AES_init_ctx_iv(ivKeyPair.second, ivKeyPair.first);
+                    std::vector<uint8_t> decryptedData = m_aes_decrypt.AES_CBC_decrypt_buffer(packet.GetPacketDataAsBytes());
+                    if(decryptedData.size() > 0)
+                    {
+                        packet.SetBodyDataFromBytes(decryptedData);
+                        Msg* pMsg = MsgProcessor::CreateMsgFromPacket(packet);
+                        if(pMsg != nullptr)
+                        {
+                            EncryptionSetupComplete = true; // Set flag to true after successful decryption with any key-IV pair
+                            return pMsg;
+                        }
+                    }
+                }
+
             }
             return nullptr;   
         }

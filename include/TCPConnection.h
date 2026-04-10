@@ -72,6 +72,7 @@ namespace CE::tcp
 
         private:
         bool m_Pairing;
+        bool EncryptionSetupComplete;
         int m_socket_fd;
         AESEncryptor m_aes_encrypt;
         AESDecryptor m_aes_decrypt;

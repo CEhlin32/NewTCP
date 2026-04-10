@@ -30,7 +30,7 @@
         inline static const int PAIRING_PORT = 51719;
         inline static const int DEBUG_PORT = 51720;
 
-        enum MsgCommands
+        enum SysMsgCommands
         {
             ValidateIVCmd = 0,
             ValidateIVResultCmd,
