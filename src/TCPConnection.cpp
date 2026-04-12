@@ -69,6 +69,7 @@ namespace CE::tcp
 
         m_KeepAlive = false;
         close(m_socket_fd);
+        m_ActiveConnections.erase(std::remove(m_ActiveConnections.begin(), m_ActiveConnections.end(), this), m_ActiveConnections.end());
         if (m_pReadThread != nullptr)
         {
             m_pReadThread->join();
@@ -187,6 +188,11 @@ namespace CE::tcp
 #ifdef OLD_CODE        
         MsgProcessor::RemoveMsgCreator(this);
 #endif        
+
+        m_KeepAlive = false;
+        close(m_socket_fd);
+        m_ActiveConnections.erase(std::remove(m_ActiveConnections.begin(), m_ActiveConnections.end(), this), m_ActiveConnections.end());
+        
         MsgProcessor::RemoveMsgProcessor(this);
     }
 
@@ -233,6 +239,12 @@ namespace CE::tcp
         int relMessageID = TCPMsgEnumManager::Get().GetRelativeID(absMessageID, "TCPSystemCommands");
         switch(relMessageID)
         {
+            case SharedSysMsgConstants::TestCmd:
+            {
+                TestMsg testMsg = TestMsg();
+                Send(testMsg);
+                break;
+            }
             case SharedSysMsgConstants::EnableEncryptDecryptCmd:
             {               
                 // send msg info data

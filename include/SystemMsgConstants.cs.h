@@ -8,6 +8,7 @@
     namespace SharedSysMsgConstants {
 
         inline static const std::vector<std::string> SystemCmdNames = {
+            "TestCmd",
             "ValidateIVCmd",
             "ValidateIVResultCmd",
             "AutherizationStartRequestCmd",
@@ -32,7 +33,8 @@
 
         enum SysMsgCommands
         {
-            ValidateIVCmd = 0,
+            TestCmd = 0,
+            ValidateIVCmd,
             ValidateIVResultCmd,
             AutherizationStartRequestCmd,
             AutherizationReadyCmd,

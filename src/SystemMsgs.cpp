@@ -27,6 +27,8 @@ namespace CE::tcp
         int relID = enumManager.GetRelativeID(packet.GetMsgID(), "TCPSystemCommands");
         switch(relID)
         {
+            case TestCmd:
+                return  new TestMsg(packet);
             case EnableEncryptDecryptCmd:
                 return  new EnableEncryptDecryptMsg(packet);
             case RequestKeyAndIVCmd:
@@ -57,6 +59,18 @@ namespace CE::tcp
         }
         return nullptr;
     }
+    
+
+    TestMsg::TestMsg() : Msg("TestCmd", TestCmd)
+    {
+    }
+    TestMsg::TestMsg(MsgPacket& packet) : Msg("TestCmd", packet)
+    {
+    }
+    TestMsg::~TestMsg()
+    {
+    }
+
     
     AvailableCmdInfoMsg::AvailableCmdInfoMsg() : Msg("AvailableCmdInfoCmd", AvailableCmdInfoCmd)
     {

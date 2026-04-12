@@ -70,6 +70,15 @@ namespace CE::tcp
 
 #endif
 
+    class TestMsg : public Msg
+    {
+    public:
+        TestMsg();
+        TestMsg(MsgPacket& packet);
+        virtual ~TestMsg();
+    };
+
+
     class AvailableCmdInfoMsg : public Msg
     {
     public:
