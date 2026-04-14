@@ -226,23 +226,7 @@ namespace CE::tcp
     {
     }
 
-    #if OLD_CODE
-    void EnableEncryptDecryptMsg::SerializeBody()
-    {
 
-        json j = *this;
-        std::string jsonStr = j.dump(1); // 
-        m_MsgPacket.SetMsgBodySize( jsonStr.size());
-        m_MsgPacket.SetIsEncrypted( false);
-        m_MsgPacket.SetBodyDataFromStr( jsonStr);
-
-    }
-    void EnableEncryptDecryptMsg::DeSerializeBody()
-    {
-        json bodyJson = json::parse(m_MsgPacket.GetBodyDataAsStr());
-        NEXT_IV = bodyJson["NEXT_IV"].get<CryptoBlockVector>();
-    }
-#endif
 
     //////////////////////////////////////////////////////////////////////ValidateIVMsg/
 
