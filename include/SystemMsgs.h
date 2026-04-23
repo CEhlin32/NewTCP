@@ -70,12 +70,37 @@ namespace CE::tcp
 
 #endif
 
-    class TestMsg : public Msg
+    class RemoteConnectionTestMsg : public Msg
+    {   
+    public:
+        RemoteConnectionTestMsg();
+        RemoteConnectionTestMsg(MsgPacket& packet);
+        virtual ~RemoteConnectionTestMsg();
+    };
+
+    class ConnectionRefusedMsg  : public Msg
     {
     public:
-        TestMsg();
-        TestMsg(MsgPacket& packet);
-        virtual ~TestMsg();
+        ConnectionRefusedMsg();
+        ConnectionRefusedMsg(MsgPacket& packet);
+        virtual ~ConnectionRefusedMsg();
+
+        enum Reasons
+        {
+            InvalidIV = 1,
+            TooManyConnections,
+            DecryptionFailed,
+            Other
+        };
+
+        void SetReasonCode(int code);
+        int GetReasonCode() const;
+
+    private:
+        int reasonCode; // You can add more details 
+                        // about the reason for refusal if needed     
+ 
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE(ConnectionRefusedMsg, reasonCode)
     };
 
 
@@ -234,6 +259,7 @@ public:
 
     CryptoBlockVector GetIV();
     CryptoBlockVector GetKey();
+    IVAndKeyValues& GetIVAndKeyValues();
 
     void CreateNewKeyAndIV();
 protected:    

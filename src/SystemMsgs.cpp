@@ -27,8 +27,8 @@ namespace CE::tcp
         int relID = enumManager.GetRelativeID(packet.GetMsgID(), "TCPSystemCommands");
         switch(relID)
         {
-            case TestCmd:
-                return  new TestMsg(packet);
+            case ConnectionRefusedCmd:
+                return  new ConnectionRefusedMsg(packet);
             case EnableEncryptDecryptCmd:
                 return  new EnableEncryptDecryptMsg(packet);
             case RequestKeyAndIVCmd:
@@ -60,17 +60,42 @@ namespace CE::tcp
         return nullptr;
     }
     
-
-    TestMsg::TestMsg() : Msg("TestCmd", TestCmd)
-    {
-    }
-    TestMsg::TestMsg(MsgPacket& packet) : Msg("TestCmd", packet)
-    {
-    }
-    TestMsg::~TestMsg()
+    RemoteConnectionTestMsg::RemoteConnectionTestMsg() : Msg("RemoteConnectionTestCmd", RemoteConnectionTestCmd)
     {
     }
 
+    RemoteConnectionTestMsg::RemoteConnectionTestMsg(MsgPacket& packet) : Msg("RemoteConnectionTestCmd", packet)
+    {
+    }
+
+    RemoteConnectionTestMsg::~RemoteConnectionTestMsg()
+    {
+    }
+
+    //////////////////////////////////////
+
+    ConnectionRefusedMsg::ConnectionRefusedMsg() : Msg("ConnectionRefusedCmd", ConnectionRefusedCmd)
+    {
+        // never encrypted
+        m_MsgPacket.SetIsEncrypted(false);
+    }
+    ConnectionRefusedMsg::ConnectionRefusedMsg(MsgPacket& packet) : Msg("ConnectionRefusedCmd", packet)
+    {
+    }
+    ConnectionRefusedMsg::~ConnectionRefusedMsg()
+    {
+    }
+
+    void ConnectionRefusedMsg::SetReasonCode(int code)
+    {
+        reasonCode = code;
+    }
+    int ConnectionRefusedMsg::GetReasonCode() const
+    {
+        return reasonCode;
+    }
+
+////////////////////////////////////////////////////////////////////
     
     AvailableCmdInfoMsg::AvailableCmdInfoMsg() : Msg("AvailableCmdInfoCmd", AvailableCmdInfoCmd)
     {
@@ -372,6 +397,11 @@ namespace CE::tcp
     CryptoBlockVector UpdateKeyAndIVMsg::GetKey()
     {
         return IV_AND_KEY.KEY;
+    }
+
+    IVAndKeyValues& UpdateKeyAndIVMsg::GetIVAndKeyValues()
+    {
+        return IV_AND_KEY;
     }
     //////////////////////////////////////////////////////////////////////ValidateIVMsg/
     DebugQueryMsg::DebugQueryMsg() : Msg("DebugQueryCmd", DebugQueryCmd) 

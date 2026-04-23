@@ -97,6 +97,7 @@ namespace CE::tcp
         AvailableCmdInfoMsg cmdInfoMsg;
         Send(cmdInfoMsg);
 #endif
+        m_KeepAlive = true;
         m_Pairing = false; // Reset pairing mode when starting read thread for a new connection
         EncryptionSetupComplete = false;
         // Implementation for reading data from the socket
@@ -121,7 +122,8 @@ namespace CE::tcp
                 // If encryption is enabled, we need to read the data in multiples of the AES block size (16 bytes)
                 if(packet.GetIsEncrypted())
                 {
-                    sizeToRead = ((sizeToRead + 15) / 16) * 16; // AES block size is 16 bytes
+                    sizeToRead = sizeToRead + (16 - (sizeToRead % 16)); 
+//                    sizeToRead = ((sizeToRead + 15) / 16) * 16; // AES block size is 16 bytes
                 }
                 // Create a buffer to hold the received data
                 std::vector<uint8_t> receivedData(sizeToRead);
@@ -154,17 +156,20 @@ namespace CE::tcp
                     {
                         if(packet.GetMsgID() == SharedSysMsgConstants::ValidateIVCmd)
                         {
-                            // Handle ValidateIVCmd without decryption
-                            ValidateIVResultMsg resultMsg;
-                            resultMsg.SetIsValid(false);
+                            // Send ConnectionRefusedMsg with reason code for invalid IV 
+                            // if decryption fails for ValidateIVCmd, which is critical for security,
+                            // new Pairing is required.
+                            ConnectionRefusedMsg resultMsg;
+                            resultMsg.SetReasonCode(ConnectionRefusedMsg::InvalidIV); // Set reason code for refusal
                             Send(resultMsg);
                             continue;
                         }
                         else
                         {
-                            TheAppLogger.LogMsgWithTime(DebugErrorLogOption::instance(),
-                            "Failed to decrypt packet from connection ID = %d\n", 
-                            m_socket_fd);
+                            ConnectionRefusedMsg resultMsg;
+                            resultMsg.SetReasonCode(ConnectionRefusedMsg::DecryptionFailed); // Set reason code for refusal
+                            Send(resultMsg);
+                            continue;
                         }
                         break;
                     }
@@ -190,7 +195,7 @@ namespace CE::tcp
 #endif        
 
         m_KeepAlive = false;
-        close(m_socket_fd);
+            close(m_socket_fd);
         m_ActiveConnections.erase(std::remove(m_ActiveConnections.begin(), m_ActiveConnections.end(), this), m_ActiveConnections.end());
         
         MsgProcessor::RemoveMsgProcessor(this);
@@ -239,12 +244,6 @@ namespace CE::tcp
         int relMessageID = TCPMsgEnumManager::Get().GetRelativeID(absMessageID, "TCPSystemCommands");
         switch(relMessageID)
         {
-            case SharedSysMsgConstants::TestCmd:
-            {
-                TestMsg testMsg = TestMsg();
-                Send(testMsg);
-                break;
-            }
             case SharedSysMsgConstants::EnableEncryptDecryptCmd:
             {               
                 // send msg info data
@@ -278,15 +277,11 @@ namespace CE::tcp
                 if(ivsMatch)
                 {
                     UpdateKeyAndIVMsg setKeyAndIVMsg;
-                    setKeyAndIVMsg.CreateNewKeyAndIV();
                     Send(setKeyAndIVMsg);
                     IVAndKeyValues keyAndIV(Autherization::Get()->GetKey(), ivToValidate);
 
                     m_aes_decrypt.AES_init_ctx_iv(setKeyAndIVMsg.GetKey(), setKeyAndIVMsg.GetIV());
                     m_aes_encrypt.AES_init_ctx_iv(setKeyAndIVMsg.GetKey(), setKeyAndIVMsg.GetIV());
-
-                    AESAccessManagement::Get()->AddASEKeyAndIV(keyAndIV);
-
 
                     // send End Validation
                     AutherizationEndMsg endAuthMsg;
@@ -308,7 +303,7 @@ namespace CE::tcp
             case SharedSysMsgConstants::RequestKeyAndIVCmd:
             {
                 UpdateKeyAndIVMsg setKeyAndIVMsg;
-                setKeyAndIVMsg.CreateNewKeyAndIV();
+                AESAccessManagement::Get()->AddASEKeyAndIV(setKeyAndIVMsg.GetIVAndKeyValues());
                 Send(setKeyAndIVMsg);
 
             }
@@ -324,12 +319,13 @@ namespace CE::tcp
 
                 if( m_Pairing == false)
                 {
-                    CryptoBlockVector serverKey = AESAccessManagement::Get()->GetASEKey(ivToValidate);
-                     bool keysMatch = (serverKey == m_aes_encrypt.GetKey());
-                    if(keysMatch)
+                    ivIsValid = AESAccessManagement::Get()->IsIVValid(ivToValidate);
+                    // Send ValidateIVResultCmd result
+                    ValidateIVResultMsg resultMsg;
+                    resultMsg.SetIsValid(ivIsValid);    
+                    Send(resultMsg);
+                    if(ivIsValid == true)
                     {
-                        ivIsValid = true;
-
                         // Sen AvailableCmd Info to Client
                         AvailableCmdInfoMsg availableCmdInfoMsg;
                         Send(availableCmdInfoMsg);
@@ -340,27 +336,7 @@ namespace CE::tcp
 
                     }
                 }
-                CryptoBlockVector key = AESAccessManagement::Get()->GetASEKey(ivToValidate);
-                if (key.size() == 0)
-                {
-                    ivIsValid = false;
-                    TheAppLogger.LogMsgWithTime(DebugErrorLogOption::instance(),
-                        "Failed to find key for iv = %s\n", 
-                        DebugSupport::ByteToCharArray(ivToValidate.GetBuf(), ivToValidate.size()).c_str());
-                    // TODO make byte to char array to a string passed as argument
-                }
 
-                if(ivIsValid == true)
-                {
-                    m_Pairing_aes_decrypt.AES_init_ctx_iv(key, ivToValidate);
-                    m_Pairing_aes_encrypt.AES_init_ctx_iv(key, ivToValidate);
-                    AESCryptor::printArray(m_Pairing_aes_decrypt.GetKey().GetBuf(), 16);
-                    AESCryptor::printArray(m_Pairing_aes_decrypt.GetIV().GetBuf(), 16);
-                }
-                // Send ValidateIVResultCmd result
-                ValidateIVResultMsg resultMsg;
-                resultMsg.SetIsValid(ivIsValid);    
-                Send(resultMsg);
                 break;
             }
             case SharedSysMsgConstants::DebugQueryCmd:
@@ -505,13 +481,6 @@ namespace CE::tcp
         {
             int id = packet.GetMsgID();
 
-            printf("*******************\n Attempting to decrypt Msg %s NOT in pairing mode\n\t IV =", MsgManager::Get().GetMsgNameFromID(packet.GetMsgID()).c_str());
-            for (int i = 0; i < 16; ++i) 
-            {
-                printf("%u ", m_aes_decrypt.GetIV()[i]);
-            }
-            printf("\n**********\n\n");
-
             const IVToKeyMap ivToKeyMap =  AESAccessManagement::Get()->GetIVToKeyMap();
             if(EncryptionSetupComplete == true )
             {
@@ -530,7 +499,20 @@ namespace CE::tcp
             {
                 for(const auto& ivKeyPair : ivToKeyMap)
                 {
-                    m_aes_decrypt.AES_init_ctx_iv(ivKeyPair.second, ivKeyPair.first);
+                    CryptoBlockVector serverIV = ivKeyPair.first;
+                    CryptoBlockVector serverKey = ivKeyPair.second;
+
+
+                    printf("*******************\n Attempting to decrypt Msg %s NOT in pairing mode\n\t IV =", MsgManager::Get().GetMsgNameFromID(packet.GetMsgID()).c_str());
+                    for (int i = 0; i < 16; ++i) 
+                        {
+                            printf("%u ", serverIV[i]);
+                    }
+                    printf("\n**********\n\n");
+
+
+                    m_aes_decrypt.AES_init_ctx_iv(serverKey, serverIV);
+                    m_aes_encrypt.AES_init_ctx_iv(serverKey, serverIV);
                     std::vector<uint8_t> decryptedData = m_aes_decrypt.AES_CBC_decrypt_buffer(packet.GetPacketDataAsBytes());
                     if(decryptedData.size() > 0)
                     {

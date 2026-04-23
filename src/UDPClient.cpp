@@ -69,6 +69,7 @@ namespace CE::tcp
 
     int  GetIPAddress()
     {
+        
         int sock = socket(PF_INET, SOCK_DGRAM, 0);
         if (sock == -1) {
             std::cerr << "Socket creation failed" << std::endl;
@@ -110,6 +111,8 @@ namespace CE::tcp
         char buffer[MAXLINE]; 
         struct sockaddr_in servaddr, cliaddr; 
         GetIPAddress();     
+
+        
         // Creating socket file descriptor 
         if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) { 
             perror("socket creation failed"); 
@@ -147,6 +150,7 @@ namespace CE::tcp
             if( (std::string::npos != requestStr.find("Discover SprinklerController") ) ||
                 (std::string::npos != requestStr.find("Discover All") ))
             {
+                cout << "Received discovery request: " << requestStr << endl;
                 std::string ipAddrStr = ExternalIPAddr::GetExternalIP();
                 ControllerData ctrlData("Sprinkler", ipAddrStr);
                 std::string serailizedData = ctrlData.Serialize();
@@ -157,6 +161,10 @@ namespace CE::tcp
                 sendto(sockfd, serailizedData.c_str(), serailizedData.length(),  
                     MSG_CONFIRM, (const struct sockaddr *) &cliaddr, 
                         len); 
+            }
+            else
+            {
+                cout << "Received unknown UDP request: " << requestStr << endl;
             }
         }
         
