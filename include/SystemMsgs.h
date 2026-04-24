@@ -54,21 +54,6 @@ namespace CE::tcp
     };
 
 
-#ifdef OLD_CDOE
-    class SystemMsgCreator : public ICreateMsgFromPacket
-    {
-        public:
-            static SystemMsgCreator& GetInstance()
-            {
-                static SystemMsgCreator instance;
-                return instance;
-            }
-        private:    
-            SystemMsgCreator();
-            Msg* CreateMsg(MsgPacket& packet) override;
-    };
-
-#endif
 
     class RemoteConnectionTestMsg : public Msg
     {   

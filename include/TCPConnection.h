@@ -48,7 +48,7 @@ namespace CE::tcp
     public:
 
         TCPConnection();
-        ~TCPConnection();
+        virtual ~TCPConnection();
         static std::vector<TCPConnection*> m_ActiveConnections;
 
         bool StartReadThread();

@@ -45,7 +45,7 @@ namespace CE::tcp
     bool MsgProcessor::ProcessMsg(Msg* pMsg)
     {
         bool completed = false;
-        for(int i = 0; i < m_MsgProcessors.size(); ++i)
+        for(size_t i = 0; i < m_MsgProcessors.size(); ++i)
         {
             completed |= m_MsgProcessors[i]->ProcessMsg(*pMsg);
         }   
@@ -58,7 +58,7 @@ namespace CE::tcp
         if(msg != nullptr)        
         {
 
-            for(int i = 0; i < m_MsgProcessors.size(); ++i)
+            for(size_t i = 0; i < m_MsgProcessors.size(); ++i)
             {
                 completed |= m_MsgProcessors[i]->ProcessMsg(*msg);
             }   
@@ -69,7 +69,7 @@ namespace CE::tcp
 
     Msg* MsgProcessor::CreateMsgFromPacket(MsgPacket& packet)
     {
-        for(int i = 0; i < m_MsgCreators.size(); ++i)
+        for(size_t i = 0; i < m_MsgCreators.size(); ++i)
         {
             Msg* pMsg = m_MsgCreators[i]->CreateMsg(packet);
             if(pMsg != nullptr)

@@ -32,19 +32,6 @@ class EnumMsgIDMgr : public IEnumIDMgr
         int m_NextBaseIndex = 0;
 };
 
-#ifdef OLD_CODE
-class IMsgCreator
-{
-    public:
-        virtual CE::tcp::Msg* CreateMsg(CE::tcp::MsgPacket& packet) = 0;
-};
-
-class IMsgProcessor
-{
-    public:
-        virtual bool ProcessMsg(CE::tcp::Msg& msg) = 0;
-};  
-#endif
 
 class MsgManager : public EnumMsgIDMgr
 {

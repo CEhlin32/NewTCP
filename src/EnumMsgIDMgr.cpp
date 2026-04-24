@@ -16,7 +16,7 @@ namespace CE::tcp
         {
             for(const auto& assignedIDs : m_AssignedEnumMsgIDs)
             {
-                if(absID >= assignedIDs.GetBaseIndex() && absID < assignedIDs.GetBaseIndex() + assignedIDs.GetEnumValueNames().size())
+                if(absID >= assignedIDs.GetBaseIndex() && absID < assignedIDs.GetBaseIndex() + (int)assignedIDs.GetEnumValueNames().size())
                 {
                     return assignedIDs;
                 }

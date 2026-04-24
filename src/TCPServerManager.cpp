@@ -29,13 +29,6 @@ namespace CE::tcp
         m_MaxConnections = 5;
         m_Error = 0;
 
-#ifdef OLD_CODE    
-        // Default Ports
-        m_remotePort = 51717;
-        m_localPort = 51718;
-        m_pairingPort = 51719;
-        m_debugPort = 51720;
-#endif
         m_pUDPServer = nullptr;
     }
 

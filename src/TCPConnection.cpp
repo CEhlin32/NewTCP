@@ -15,20 +15,24 @@
 
 #include <SystemMsgConstants.cs.h>
 
-#ifdef OLD_CODE
-#include <TCPMsgs.h>
-#endif
 namespace CE::tcp
 {
     std::vector<TCPConnection*> TCPConnection::m_ActiveConnections;
     PublisherBase TCPConnection::m_Publisher;
 
-    TCPConnection::TCPConnection() :
-        m_socket_fd(-1), 
+    TCPConnection::TCPConnection() : 
         m_pReadThread(nullptr),
-        m_KeepAlive(true),
+        m_ReadThreadId(0),
+        m_ConnectionStatus(),
+        m_Pairing(false),
         EncryptionSetupComplete(false),
-        m_Pairing(false)
+        m_socket_fd(-1),
+        m_aes_encrypt(),
+        m_aes_decrypt(),
+        m_Pairing_aes_encrypt(),
+        m_Pairing_aes_decrypt(),
+        m_SendMutex(), // Mutex for synchronizing access to the send function
+        m_KeepAlive(false)
     {
         m_ConnectionStatus.status = TCPConnectionStatus::Connection_Available;
     }
@@ -77,11 +81,6 @@ namespace CE::tcp
             m_pReadThread = nullptr;
         }
         MsgProcessor::RemoveMsgProcessor(this);
-#ifdef OLD_CODE        
-        MsgProcessor::RemoveMsgCreator(this);
-
-        //ce_sprinkler::MsgManager::Get().RemoveMsgProcessor(this);
-#endif        
     }   
 
     TCPConnectionStatus::ServerStatus TCPConnection::GetConnectionStatus() const
@@ -92,30 +91,24 @@ namespace CE::tcp
     void TCPConnection::ReadThreadFunction()
     {
         m_ActiveConnections.push_back(this);
-#ifdef OLD_CODE        
-        // Send AvailableCmdInfoMsg to client
-        AvailableCmdInfoMsg cmdInfoMsg;
-        Send(cmdInfoMsg);
-#endif
         m_KeepAlive = true;
         m_Pairing = false; // Reset pairing mode when starting read thread for a new connection
         EncryptionSetupComplete = false;
         // Implementation for reading data from the socket
         while(m_KeepAlive == true)
         {
-            char buffer[1024];
             // Read Msg header
             MsgPacket packet;
             packet.SetConnectionID(m_socket_fd); // Set connection ID if needed
-            int numBytesRead = read(m_socket_fd, packet.GetMsgHdrDataPtr(),packet.GetMsgHdrSize());
-                if(packet.GetMsgHdrSize() != numBytesRead)
+            size_t numBytesRead = read(m_socket_fd, packet.GetMsgHdrDataPtr(),packet.GetMsgHdrSize());
+            if(packet.GetMsgHdrSize() != numBytesRead)
             {
                 // Handle read error or disconnection
                 break;
             }
         
             // Read Msg body using size from header
-            int sizeToRead = packet.GetMsgBodySize();
+            size_t sizeToRead = packet.GetMsgBodySize();
 
             if(sizeToRead > 0)
             {
@@ -128,7 +121,7 @@ namespace CE::tcp
                 // Create a buffer to hold the received data
                 std::vector<uint8_t> receivedData(sizeToRead);
                 // Read the data into the buffer
-                int sizeRead = read(m_socket_fd, receivedData.data(), sizeToRead);
+                size_t sizeRead = read(m_socket_fd, receivedData.data(), sizeToRead);
                 // 
                 if(sizeToRead != sizeRead)
                 {
@@ -143,7 +136,7 @@ namespace CE::tcp
                     m_Pairing = true;
                     packet.SetBodyDataFromStr(packet.GetPacketDataAsStr());
                     Msg* pMsg = new AutherizationStartRequestMsg(packet);
-                    bool msgProcessed = MsgProcessor::ProcessMsg(pMsg);
+                    MsgProcessor::ProcessMsg(pMsg);
                     delete pMsg;
                     continue;
                 }
@@ -175,7 +168,7 @@ namespace CE::tcp
                     }
                     else
                     {
-                        bool msgProcessed = MsgProcessor::ProcessMsg(pMsg);
+                        MsgProcessor::ProcessMsg(pMsg);
                         delete pMsg;
                     }
                 }
@@ -185,14 +178,10 @@ namespace CE::tcp
             {
                 // If no body data, we can process the Msg directly
                 packet.SetBodyDataFromBytes(packet.GetPacketDataAsBytes());
-                bool msgProcessed = MsgProcessor::ProcessMsgFromPacket(packet);
+                MsgProcessor::ProcessMsgFromPacket(packet);
             }
 
         }
-
-#ifdef OLD_CODE        
-        MsgProcessor::RemoveMsgCreator(this);
-#endif        
 
         m_KeepAlive = false;
             close(m_socket_fd);
@@ -201,45 +190,11 @@ namespace CE::tcp
         MsgProcessor::RemoveMsgProcessor(this);
     }
 
-#ifdef OLD_CODE    
-    Msg* TCPConnection::CreateMsg(MsgPacket& packet)
-    {
-        EnumExtenderManager& enumManager = TCPMsgEnumManager::Get();
-        int relID = enumManager.GetRelativeID(packet.GetMsgID(), "TCPSystemCommands");
-        switch(relID)
-        {
-            case EnableEncryptDecryptCmd:
-                return  new EnableEncryptDecryptMsg(packet);
-            case RequestKeyAndIVCmd:
-                return new RequestKeyAndIVMsg(packet);
-            case UpdateKeyAndIVCmd:
-                return new UpdateKeyAndIVMsg(packet); 
-            case KeepAliveCmd:
-                return new KeepAliveMsg(packet);
-            case RemoteConnectionOkCmd:
-                return new RemoteConnectionOkMsg(packet);
-            case AutherizationStartRequestCmd:
-                return new AutherizationStartRequestMsg(packet);
-            case AutherizationReadyCmd:
-                return new AutherizationReadyMsg(packet);
-            case ValidateIVCmd:
-                return new ValidateIVMsg(packet);
-            case ValidateIVResultCmd:
-                return new ValidateIVResultMsg(packet);
-            case DebugQueryCmd:
-                return new DebugQueryMsg(packet);
-            case DebugResponseCmd:
-                return new DebugResponseMsg(packet);
-            
-            default:
-                break;
-        }
-        return nullptr;
-    }
-    #endif
+
 
     bool TCPConnection::ProcessMsg(Msg& msg)
     {
+        bool result = true;
         int absMessageID = msg.GetMsgID();
         int relMessageID = TCPMsgEnumManager::Get().GetRelativeID(absMessageID, "TCPSystemCommands");
         switch(relMessageID)
@@ -358,8 +313,10 @@ namespace CE::tcp
             }
             break;
             default:
+                result = false;
                 break;
         }   
+        return result;
     }
 
 
@@ -404,7 +361,9 @@ namespace CE::tcp
                 return -1; // Serialization failed
             }
             printf("*******************/nSending Msg: Id = %d, %s with Encryption = %d\n", packet.GetMsgID(), MsgManager::Get().GetMsgNameFromID(packet.GetMsgID()).c_str(), packet.GetIsEncrypted());   ;
-            if(packet.GetMsgHdrSize() != send(m_socket_fd, packet.GetMsgHdrDataPtr(),packet.GetMsgHdrSize(), 0))
+            size_t hdrSize = packet.GetMsgHdrSize();
+            size_t sizeSent = send(m_socket_fd, packet.GetMsgHdrDataPtr(),packet.GetMsgHdrSize(), 0);
+            if(hdrSize != sizeSent) 
             {
                 return -2; // Send failed
             }
@@ -412,8 +371,9 @@ namespace CE::tcp
             {
                 // Send Msg body here
                 std::vector<uint8_t> bd = packet.GetPacketDataAsBytes();
-                if(packet.GetPacketDataAsBytes().size() != 
-                    send(m_socket_fd, packet.GetPacketDataAsBytes().data(), packet.GetPacketDataAsBytes().size(), 0))
+                size_t bodySize = bd.size();
+                size_t bodySent = send(m_socket_fd, bd.data(), bodySize, 0);
+                if(bodySize != bodySent)
                 {
                     return -3; // Send body failed
                 }
@@ -479,8 +439,6 @@ namespace CE::tcp
     {
         if(m_Pairing == false)
         {
-            int id = packet.GetMsgID();
-
             const IVToKeyMap ivToKeyMap =  AESAccessManagement::Get()->GetIVToKeyMap();
             if(EncryptionSetupComplete == true )
             {
