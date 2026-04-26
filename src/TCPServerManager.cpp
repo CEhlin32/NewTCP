@@ -2,6 +2,8 @@
 #include <TCPServer.h>
 #include <DebReport.h>
 #include <SystemMsgConstants.cs.h>
+#include <TCPLogOptions.h>
+
 namespace CE::tcp
 {
 
@@ -18,6 +20,7 @@ namespace CE::tcp
          SystemMsgEnumIDs("TCPSystemCommands", SharedSysMsgConstants::SystemCmdNames)
     {
         theInstance = this;
+        TCPLogOptionGroup::instance(); // make sure it is initialized and registered as a LogOptionGroup
         baseID = CE::tcp::MsgManager::Get().AddEnumIDs(SystemMsgEnumIDs);
 
 

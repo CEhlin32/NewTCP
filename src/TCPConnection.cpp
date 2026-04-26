@@ -27,10 +27,10 @@ namespace CE::tcp
         m_Pairing(false),
         EncryptionSetupComplete(false),
         m_socket_fd(-1),
-        m_aes_encrypt(),
-        m_aes_decrypt(),
-        m_Pairing_aes_encrypt(),
-        m_Pairing_aes_decrypt(),
+        m_aes_encrypt("TCPConnection_AESEncryptor"),
+        m_aes_decrypt("TCPConnection_AESDecryptor"),
+        m_Pairing_aes_encrypt("TCPConnection_Pairing_AESEncryptor"),
+        m_Pairing_aes_decrypt("TCPConnection_Pairing_AESDecryptor"),
         m_SendMutex(), // Mutex for synchronizing access to the send function
         m_KeepAlive(false)
     {
@@ -91,6 +91,7 @@ namespace CE::tcp
     void TCPConnection::ReadThreadFunction()
     {
         m_ActiveConnections.push_back(this);
+        m_ConnectionStatus.status = TCPConnectionStatus::Connection_Connected;
         m_KeepAlive = true;
         m_Pairing = false; // Reset pairing mode when starting read thread for a new connection
         EncryptionSetupComplete = false;
@@ -144,7 +145,6 @@ namespace CE::tcp
                 {
                     // Decrypt Msg here
                     Msg *pMsg = DecryptMsg(packet);
-                    printf("*******************\n Finished decrypting Msg %s\n\n", MsgManager::Get().GetMsgNameFromID(packet.GetMsgID()).c_str());
                     if( pMsg == nullptr)
                     {
                         if(packet.GetMsgID() == SharedSysMsgConstants::ValidateIVCmd)
@@ -184,8 +184,9 @@ namespace CE::tcp
         }
 
         m_KeepAlive = false;
-            close(m_socket_fd);
+        close(m_socket_fd);
         m_ActiveConnections.erase(std::remove(m_ActiveConnections.begin(), m_ActiveConnections.end(), this), m_ActiveConnections.end());
+        m_ConnectionStatus.status = TCPConnectionStatus::Connection_Available;
         
         MsgProcessor::RemoveMsgProcessor(this);
     }
@@ -360,7 +361,6 @@ namespace CE::tcp
                     msg.GetName().c_str(), m_socket_fd);
                 return -1; // Serialization failed
             }
-            printf("*******************/nSending Msg: Id = %d, %s with Encryption = %d\n", packet.GetMsgID(), MsgManager::Get().GetMsgNameFromID(packet.GetMsgID()).c_str(), packet.GetIsEncrypted());   ;
             size_t hdrSize = packet.GetMsgHdrSize();
             size_t sizeSent = send(m_socket_fd, packet.GetMsgHdrDataPtr(),packet.GetMsgHdrSize(), 0);
             if(hdrSize != sizeSent) 
@@ -378,7 +378,6 @@ namespace CE::tcp
                     return -3; // Send body failed
                 }
             }
-            printf("*******************/n Finsished sendingMsg  %s\n\n", MsgManager::Get().GetMsgNameFromID(packet.GetMsgID()).c_str());   
         }
         catch(const MyExceptions::IOException& e)
         {
@@ -409,29 +408,16 @@ namespace CE::tcp
         if(m_Pairing == false)
         {
             // During pairing mode, we use the IV and key set for this connection without trying to find a match
-            printf("*******************\n Encrypting Msg %s in NOT IN pairing mode\n\t IV =", MsgManager::Get().GetMsgNameFromID(packet.GetMsgID()).c_str());
-            for (int i = 0; i < 16; ++i) 
-            {
-                printf("%u ", m_aes_encrypt.GetIV()[i]);
-            }
-            printf("\n**********\n\n");
             m_aes_encrypt.AES_CBC_encrypt_buffer(packet.GetBodyDataAsStr(),packet.GetPacketDataAsBytes());
 
         }
         else
         {
             // During pairing mode, we use the IV and key set for this connection without trying to find a match
-            printf("*******************\n Encrypting Msg %s in pairing mode\n\t IV =", MsgManager::Get().GetMsgNameFromID(packet.GetMsgID()).c_str());
-            for (int i = 0; i < 16; ++i) 
-            {
-                printf("%u ", m_Pairing_aes_encrypt.GetIV()[i]);
-            }
-            printf("\n**********\n\n");
         // Implementation for encrypting a message
             m_Pairing_aes_encrypt.AES_CBC_encrypt_buffer(packet.GetBodyDataAsStr(),packet.GetPacketDataAsBytes());
 
         }
-        printf("*******************\n Finished encrypting Msg %s\n\n", MsgManager::Get().GetMsgNameFromID(packet.GetMsgID()).c_str());
         return true;
     }
 
@@ -460,15 +446,6 @@ namespace CE::tcp
                     CryptoBlockVector serverIV = ivKeyPair.first;
                     CryptoBlockVector serverKey = ivKeyPair.second;
 
-
-                    printf("*******************\n Attempting to decrypt Msg %s NOT in pairing mode\n\t IV =", MsgManager::Get().GetMsgNameFromID(packet.GetMsgID()).c_str());
-                    for (int i = 0; i < 16; ++i) 
-                        {
-                            printf("%u ", serverIV[i]);
-                    }
-                    printf("\n**********\n\n");
-
-
                     m_aes_decrypt.AES_init_ctx_iv(serverKey, serverIV);
                     m_aes_encrypt.AES_init_ctx_iv(serverKey, serverIV);
                     std::vector<uint8_t> decryptedData = m_aes_decrypt.AES_CBC_decrypt_buffer(packet.GetPacketDataAsBytes());
@@ -489,12 +466,6 @@ namespace CE::tcp
         }
         else
         {
-            printf("*******************\n Attempting to decrypt Msg %s in pairing mode\n\t IV =", MsgManager::Get().GetMsgNameFromID(packet.GetMsgID()).c_str());
-            for (int i = 0; i < 16; ++i) 
-            {
-                printf("%u ", m_Pairing_aes_decrypt.GetIV()[i]);
-            }
-            printf("\n**********\n\n");
             std::vector<uint8_t> decryptedData = m_Pairing_aes_decrypt.AES_CBC_decrypt_buffer(packet.GetPacketDataAsBytes());
             if(decryptedData.size() > 0)
             {

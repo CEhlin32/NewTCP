@@ -30,7 +30,13 @@ namespace CE::tcp
 
         ServerStatus status;
 
-        inline static const std::vector<std::string> ServerStatusStr;
+        inline static const std::vector<std::string> ServerStatusStr
+        {
+            "Available",
+            "Connected",
+            "ShuttingDown",
+            "StartingUp"
+        };
     };
 
     class ConnectionCompleteData : public PublishDataBase

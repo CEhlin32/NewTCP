@@ -51,7 +51,7 @@ namespace CE::tcp
         m_CmdDefinitions.push_back(new DisableLogOptionCmd(this, "TCP Disable Encrypted",
             "Disables Logging of Message Encrypted Data"));  
     }
-    TCPEncryptLogOption::TCPEncryptLogOption() : LogOption("TCPEncrypted Data Cmds", TheAppLogger)
+    TCPEncryptLogOption::TCPEncryptLogOption() : LogOption("TCP Encrypted Data Cmds", TheAppLogger)
     {
         InitCmdDefinitions();
     }
@@ -138,17 +138,34 @@ namespace CE::tcp
         m_CmdDefinitions.push_back(new DisableLogOptionGroupCmd(this, "TCP Disable All",        
             "Disables Logging of all Message Data"));
 
-        m_CmdDefinitions.push_back(new TCPStatusCmd());    
+        m_CmdDefinitions.push_back(new TCPStatusCmd());
+        
+        m_CmdDefinitions.push_back(new EnableLogOptionCmd(&TCPInfoLogOption::instance(), "TCP Enable Info", 
+                " Enables TCP Message Info Logging"));
+        m_CmdDefinitions.push_back(new DisableLogOptionCmd(&TCPInfoLogOption::instance(), "TCP Disable Info",
+            "Disables TCP Message Info Logging"));
+        m_CmdDefinitions.push_back(new EnableLogOptionCmd(&TCPEncryptLogOption::instance(), "TCP Enable Encrypted", 
+                " Enables Logging of Message Encrypted Data"));
+        m_CmdDefinitions.push_back(new DisableLogOptionCmd(&TCPEncryptLogOption::instance(), "TCP Disable Encrypted",
+            "Disables Logging of Message Encrypted Data"));
+        m_CmdDefinitions.push_back(new EnableLogOptionCmd(&TCPDecryptLogOption::instance(), "TCP Enable Decrypted", 
+                " Enables Logging of Message Decrypted Data"));
+        m_CmdDefinitions.push_back(new DisableLogOptionCmd(&TCPDecryptLogOption::instance(), "TCP Disable Decrypted",
+            "Disables Logging of Message Decrypted Data"));
+        m_CmdDefinitions.push_back(new EnableLogOptionCmd(&TCPStatusChangeLogOption::instance(), "TCP Enable Status", 
+                " Enables Logging of TCP Status"));
+        m_CmdDefinitions.push_back(new DisableLogOptionCmd(&TCPStatusChangeLogOption::instance(), "TCP Disable Status",
+            "Disables Logging of TCP Status")); 
     }
 
     TCPLogOptionGroup::TCPLogOptionGroup() : LogOptionGroup("TCP Commands", TheAppLogger)
     {
-        InitCmdDefinitions();
         // Add all LogOptions to this group
         m_LogOptions.push_back(&TCPInfoLogOption::instance());
         m_LogOptions.push_back(&TCPEncryptLogOption::instance());
         m_LogOptions.push_back(&TCPDecryptLogOption::instance());
         m_LogOptions.push_back(&TCPStatusChangeLogOption::instance());
+        InitCmdDefinitions();
 
         TCPInfoLogOption::instance().Subscribe(this);
         TCPEncryptLogOption::instance().Subscribe(this);

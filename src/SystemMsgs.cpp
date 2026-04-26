@@ -355,17 +355,6 @@ namespace CE::tcp
         m_MsgPacket.SetMsgBodySize( JSONStr.size());
         m_MsgPacket.SetBodyDataFromStr( JSONStr);
 
-        std::cout << "UPDATE KEY_IV Setting Key to: ";
-        for (int i = 0; i < 16; ++i) {
-            printf("%u ", IV_AND_KEY.KEY[i]);
-        }
-        printf("\n");
-
-        std::cout << "UPDATE KEY_IV Setting IV to: ";
-        for (int i = 0; i < 16; ++i) {
-            printf("%u ", IV_AND_KEY.IV[i]);
-        }
-        printf("\n");
     }
 
     void UpdateKeyAndIVMsg::DeSerializeBody()
