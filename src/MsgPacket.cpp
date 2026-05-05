@@ -1,20 +1,24 @@
 #include <MsgPacket.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <SystemMsgs.h>
 
-
-namespace newtcp
+namespace CE::tcp
 {
-    MsgPacket::MsgPacket(std::string name, int msgID) : m_Name(name)
+    MsgPacket::MsgPacket(std::string name, int msgID) : m_Name(name), m_ConnectionID(msgID)
     {
         // Initialize packet data with default values
         m_Data.Prefix = 0xDEADBEEF; // Example prefix
-        m_Data.MsgID = msgID;
+        m_Data.MsgID = TCPMsgEnumManager::Get().GetAbsoluteID(name);
         m_Data.MsgBodySize = 0;
-        m_Data.PacketHandlerType = 0;
         m_Data.IsEncrypted = false;
+        m_Data.dummy1 = 0;
+        m_Data.dummy2 = 0;
+        m_Data.dummy3 = 0;
         m_Data.Postfix = 0xBEEFDEAD; // Example postfix
+        ServerType = LOCAL_SERVER;
     }
+    
 
     MsgPacket::~MsgPacket()
     {
@@ -31,14 +35,24 @@ namespace newtcp
     int MsgPacket::GetMsgID() const
     {
         return m_Data.MsgID;
-    }
-    void MsgPacket::SetPacketHandlerType(int type)
+    }           
+
+    int MsgPacket::GetRelID()
     {
-        m_Data.PacketHandlerType = type;
+        return TCPMsgEnumManager::Get().GetRelativeID(m_Data.MsgID, "TCPSystemCommands");
     }
-    int MsgPacket::GetPacketHandlerType() const
+
+    int MsgPacket::GetAbsID()
     {
-        return m_Data.PacketHandlerType;
+        return m_Data.MsgID;
+    }
+    void MsgPacket::SetServerType(TCPServerTypes type)
+    {
+        ServerType = type;
+    }
+    TCPServerTypes MsgPacket::GetServerType () const
+    {
+        return ServerType;
     }
 
     bool MsgPacket::GetIsEncrypted() const
@@ -54,6 +68,6 @@ namespace newtcp
     {
         return m_Data.Postfix;
     }   
-} // namespace newtcp
+} // namespace CE::tcp
 
 
