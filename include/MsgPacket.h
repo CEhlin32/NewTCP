@@ -2,6 +2,7 @@
 #define MSG_PACKET_H
 
 #include <string>
+#include <cstdint>
 #include <vector>
 #include <CommonDefinitions.h>
 
