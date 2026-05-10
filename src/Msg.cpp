@@ -3,13 +3,15 @@
 
 namespace CE::tcp
 {
-    Msg::Msg(std::string name, int msgID) : m_Name(name), m_MsgPacket(name, msgID)
+    Msg::Msg(std::string name, int msgID) : 
+        m_Name(name), m_MsgPacket(name, msgID), m_NeverEncrypted(false)
     {
         m_MsgPacket.SetIsEncrypted(true); // Default to encrypted, can be overridden by derived classes;
         // Constructor implementation
     }
 
-    Msg::Msg(std::string name, MsgPacket& packet) : m_Name(name), m_MsgPacket(packet)
+    Msg::Msg(std::string name, MsgPacket& packet) : 
+        m_Name(name), m_MsgPacket(packet), m_NeverEncrypted(false)
     {
         // Copy constructor implementation
         DeSerializeBody();
@@ -33,9 +35,13 @@ namespace CE::tcp
         {
             m_MsgPacket.SetIsEncrypted(false); // Mark packet as not encrypted if body size is 0, can be overridden by derived classes
         }
-        else
+        else if(m_NeverEncrypted == false)
         {
             m_MsgPacket.SetIsEncrypted(true); // Mark packet as encrypted if body size is greater than 0, can be overridden by derived classes
+        }
+        else
+        {
+            m_MsgPacket.SetIsEncrypted(false); // Mark packet as not encrypted if NeverEncrypted flag is set, can be overridden by derived classes
         }
         return m_MsgPacket;
     }

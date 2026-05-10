@@ -143,6 +143,15 @@ namespace CE::tcp
                 }
                 else
                 {
+                    // make sure MsgID is valid
+                    if( MsgManager::Get().IsValidID(packet.GetMsgID()) == false)
+                    {
+                        CommunicationFailedMsg resultMsg;
+                        resultMsg.SetReasonCode(CommunicationFailedMsg::UnknownMsgID); // Set reason code for refusal
+                        resultMsg.SetMsgID(packet.GetMsgID()); // Set the MsgID that caused the failure
+                        Send(resultMsg);
+                        continue; 
+                    }
                     // Decrypt Msg here
                     Msg *pMsg = DecryptMsg(packet);
                     if( pMsg == nullptr)
@@ -152,19 +161,19 @@ namespace CE::tcp
                             // Send ConnectionRefusedMsg with reason code for invalid IV 
                             // if decryption fails for ValidateIVCmd, which is critical for security,
                             // new Pairing is required.
-                            ConnectionRefusedMsg resultMsg;
-                            resultMsg.SetReasonCode(ConnectionRefusedMsg::InvalidIV); // Set reason code for refusal
+                            CommunicationFailedMsg resultMsg;
+                            resultMsg.SetReasonCode(CommunicationFailedMsg::InvalidIV); // Set reason code for refusal
+                            resultMsg.SetMsgID(packet.GetMsgID()); // Set the MsgID that caused the failure
                             Send(resultMsg);
-                            continue;
                         }
                         else
                         {
-                            ConnectionRefusedMsg resultMsg;
-                            resultMsg.SetReasonCode(ConnectionRefusedMsg::DecryptionFailed); // Set reason code for refusal
+                            CommunicationFailedMsg resultMsg;
+                            resultMsg.SetReasonCode(CommunicationFailedMsg::DecryptionFailed); // Set reason code for refusal
+                            resultMsg.SetMsgID(packet.GetMsgID()); // Set the MsgID that caused the failure
                             Send(resultMsg);
-                            continue;
                         }
-                        break;
+                        continue; // ????????
                     }
                     else
                     {
@@ -234,7 +243,8 @@ namespace CE::tcp
                 {
                     UpdateKeyAndIVMsg setKeyAndIVMsg;
                     Send(setKeyAndIVMsg);
-                    IVAndKeyValues keyAndIV(Autherization::Get()->GetKey(), ivToValidate);
+                    CryptoBlockVector serverKey = Autherization::Get()->GetKey();
+                    IVAndKeyValues keyAndIV(serverKey, ivToValidate);
 
                     m_aes_decrypt.AES_init_ctx_iv(setKeyAndIVMsg.GetKey(), setKeyAndIVMsg.GetIV());
                     m_aes_encrypt.AES_init_ctx_iv(setKeyAndIVMsg.GetKey(), setKeyAndIVMsg.GetIV());
@@ -354,6 +364,11 @@ namespace CE::tcp
                 // Encrypt msg here
                 EncryptMsg(packet);
             }
+            else
+            {
+                // If not encrypted, we need to make sure the body data is set correctly in the packet for sending
+                packet.SetBodyDataFromStr(packet.GetPacketDataAsStr());
+            }
             if( -1 == packet.GetMsgID())
             {
                 TheAppLogger.LogMsgWithTime(DebugErrorLogOption::instance(),
@@ -425,7 +440,7 @@ namespace CE::tcp
     {
         if(m_Pairing == false)
         {
-            const IVToKeyMap ivToKeyMap =  AESAccessManagement::Get()->GetIVToKeyMap();
+            const IVToKeyMap& ivToKeyMap =  AESAccessManagement::Get()->GetIVToKeyMap();
             if(EncryptionSetupComplete == true )
             {
                 std::vector<uint8_t> decryptedData = m_aes_decrypt.AES_CBC_decrypt_buffer(packet.GetPacketDataAsBytes());

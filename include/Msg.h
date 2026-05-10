@@ -50,7 +50,12 @@ namespace CE::tcp
         // @brief Get the MsgPacket associated with this message, which can be used for transmission
         // @return Reference to the MsgPacket associated with this message
         MsgPacket& GetMsgPacket(); 
- 
+        
+        void SetNeverEncrypted()
+        {
+            m_MsgPacket.SetIsEncrypted(false);
+            m_NeverEncrypted = true;
+        }
         protected:
         // Virtual methods for serializing and deserializing the message body, which can be overridden by derived classes to handle specific message content
         virtual void SerializeBody(){/*Default is no Body to Serialize*/;}
@@ -60,6 +65,7 @@ namespace CE::tcp
         // Add members and methods as needed
         std::string m_Name;
         MsgPacket m_MsgPacket;
+        bool m_NeverEncrypted; // Flag to indicate if this message should never be encrypted, can be set by derived classes
     };
 } // namespace CE::tcp
 

@@ -4,7 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "~/Projects/LibCode/**"
+                "/home/Projects/LibCode/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

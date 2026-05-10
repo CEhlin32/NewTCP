@@ -63,29 +63,43 @@ namespace CE::tcp
         virtual ~RemoteConnectionTestMsg();
     };
 
-    class ConnectionRefusedMsg  : public Msg
+    class CommunicationFailedMsg  : public Msg
     {
     public:
-        ConnectionRefusedMsg();
-        ConnectionRefusedMsg(MsgPacket& packet);
-        virtual ~ConnectionRefusedMsg();
+        CommunicationFailedMsg();
+        CommunicationFailedMsg(MsgPacket& packet);
+        virtual ~CommunicationFailedMsg();
 
-        enum Reasons
+        enum ReasonCodes
         {
+            DecryptionFailed = 0,
             InvalidIV = 1,
-            TooManyConnections,
-            DecryptionFailed,
-            Other
+            UnknownMsgID = 2,
+            UnknownError = 3
         };
-
-        void SetReasonCode(int code);
-        int GetReasonCode() const;
-
+        void SetReasonCode(int reasonCode)
+        {
+            REASON_CODE = reasonCode;
+        }
+        int GetReasonCode()
+        {
+            return REASON_CODE;
+        }
+        int GetMsgID()
+        {
+            return MSG_ID;
+        }
+        void SetMsgID(int MsgID)
+        {
+            MSG_ID = MsgID;
+        }
+    protected:    
+        void SerializeBody() override ;
+        void DeSerializeBody() override ;
     private:
-        int reasonCode; // You can add more details 
-                        // about the reason for refusal if needed     
- 
-        NLOHMANN_DEFINE_TYPE_INTRUSIVE(ConnectionRefusedMsg, reasonCode)
+        int REASON_CODE;
+        int MSG_ID;
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE(CommunicationFailedMsg, REASON_CODE, MSG_ID)        
     };
 
 

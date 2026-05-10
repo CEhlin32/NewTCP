@@ -7,25 +7,6 @@
 
     namespace SharedSysMsgConstants {
 
-        inline static const std::vector<std::string> SystemCmdNames = {
-            "ConnectionRefusedCmd",
-            "RemoteConnectionTestCmd",
-            "ValidateIVCmd",
-            "ValidateIVResultCmd",
-            "AutherizationStartRequestCmd",
-            "AutherizationReadyCmd",
-            "AutherizationValidationCmd",
-            "AutherizationValidationResponseCmd",
-            "AutherizationEndCmd",
-            "AvailableCmdInfoCmd",
-            "EnableEncryptDecryptCmd",
-            "RequestKeyAndIVCmd",
-            "UpdateKeyAndIVCmd",
-            "KeepAliveCmd",
-            "RemoteConnectionOkCmd",
-            "DebugQueryCmd",
-            "DebugResponseCmd"
-        };
 
         inline static const int REMOTE_PORT = 51717;
         inline static const int LOCAL_PORT = 51718;
@@ -34,7 +15,7 @@
 
         enum SysMsgCommands
         {
-            ConnectionRefusedCmd = 0,
+            CommunicationFailedCmd = 0,
             RemoteConnectionTestCmd,
             ValidateIVCmd,
             ValidateIVResultCmd,
@@ -51,6 +32,25 @@
             RemoteConnectionOkCmd,
             DebugQueryCmd,
             DebugResponseCmd
+        };
+        inline static const std::vector<std::string> SystemCmdNames = {
+            "CommunicationFailedCmd",
+            "RemoteConnectionTestCmd",
+            "ValidateIVCmd",
+            "ValidateIVResultCmd",
+            "AutherizationStartRequestCmd",
+            "AutherizationReadyCmd",
+            "AutherizationValidationCmd",
+            "AutherizationValidationResponseCmd",
+            "AutherizationEndCmd",
+            "AvailableCmdInfoCmd",
+            "EnableEncryptDecryptCmd",
+            "RequestKeyAndIVCmd",
+            "UpdateKeyAndIVCmd",
+            "KeepAliveCmd",
+            "RemoteConnectionOkCmd",
+            "DebugQueryCmd",
+            "DebugResponseCmd"
         };
 
     } // namespace SharedSysMsgConstants

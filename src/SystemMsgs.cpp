@@ -27,8 +27,8 @@ namespace CE::tcp
         int relID = enumManager.GetRelativeID(packet.GetMsgID(), "TCPSystemCommands");
         switch(relID)
         {
-            case ConnectionRefusedCmd:
-                return  new ConnectionRefusedMsg(packet);
+            case CommunicationFailedCmd:
+                return  new CommunicationFailedMsg(packet);
             case EnableEncryptDecryptCmd:
                 return  new EnableEncryptDecryptMsg(packet);
             case RequestKeyAndIVCmd:
@@ -74,26 +74,36 @@ namespace CE::tcp
 
     //////////////////////////////////////
 
-    ConnectionRefusedMsg::ConnectionRefusedMsg() : Msg("ConnectionRefusedCmd", ConnectionRefusedCmd)
+    CommunicationFailedMsg::CommunicationFailedMsg() : Msg("CommunicationFailedCmd", CommunicationFailedCmd)
     {
         // never encrypted
-        m_MsgPacket.SetIsEncrypted(false);
+        SetNeverEncrypted();
     }
-    ConnectionRefusedMsg::ConnectionRefusedMsg(MsgPacket& packet) : Msg("ConnectionRefusedCmd", packet)
+    CommunicationFailedMsg::CommunicationFailedMsg(MsgPacket& packet) : Msg("CommunicationFailedCmd", packet)
     {
+        // never encrypted
+        SetNeverEncrypted();
+        DeSerializeBody();
     }
-    ConnectionRefusedMsg::~ConnectionRefusedMsg()
+    CommunicationFailedMsg::~CommunicationFailedMsg()
     {
     }
 
-    void ConnectionRefusedMsg::SetReasonCode(int code)
+    void CommunicationFailedMsg::SerializeBody()
     {
-        reasonCode = code;
+        json j = *this;
+        std::string jsonStr = j.dump(1); // 
+        m_MsgPacket.SetMsgBodySize( jsonStr.size());
+        m_MsgPacket.SetBodyDataFromStr( jsonStr);   
     }
-    int ConnectionRefusedMsg::GetReasonCode() const
+
+    void CommunicationFailedMsg::DeSerializeBody()
     {
-        return reasonCode;
+        json jsonBody = json::parse(m_MsgPacket.GetBodyDataAsStr());
+        REASON_CODE = jsonBody["REASON_CODE"].get<int>();
     }
+
+
 
 ////////////////////////////////////////////////////////////////////
     

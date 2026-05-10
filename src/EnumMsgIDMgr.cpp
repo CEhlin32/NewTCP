@@ -24,6 +24,19 @@ namespace CE::tcp
             // Return a default AssignedEnumMsgIDs if not found
             return AssignedEnumMsgIDs(EnumIDs("", {}), -1);
         }
+
+        bool EnumMsgIDMgr::IsValidID(int absID) const
+        {
+            for(const auto& assignedIDs : m_AssignedEnumMsgIDs)
+            {
+                if(absID >= assignedIDs.GetBaseIndex() && absID < assignedIDs.GetBaseIndex() + (int)assignedIDs.GetEnumValueNames().size())
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         std::string EnumMsgIDMgr::Serialize() const
         {
             json j;

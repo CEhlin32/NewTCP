@@ -22,6 +22,8 @@ class EnumMsgIDMgr : public IEnumIDMgr
 
         int AddEnumIDs(const EnumIDs& enumIDs) override;
         AssignedEnumMsgIDs GetEnumIDsFor(int absID) const override;
+
+        bool IsValidID(int absID) const override;
         std::string Serialize() const;
         void DeSerialize(const std::string& str);
 
