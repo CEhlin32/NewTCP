@@ -4,7 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "~/Projects/LibCode/**"
+                "~/Development/SprinklerController/LibCode/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
