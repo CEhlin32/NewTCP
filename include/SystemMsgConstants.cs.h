@@ -25,6 +25,8 @@
             AutherizationValidationResponseCmd,
             AutherizationEndCmd,
             AvailableCmdInfoCmd,
+            AddToCmdInfoCmd,
+            UpdateAvailableCmdInfoCmd,
             EnableEncryptDecryptCmd,
             RequestKeyAndIVCmd,
             UpdateKeyAndIVCmd,
@@ -44,6 +46,8 @@
             "AutherizationValidationResponseCmd",
             "AutherizationEndCmd",
             "AvailableCmdInfoCmd",
+            "AddToCmdInfoCmd",
+            "UpdateAvailableCmdInfoCmd",
             "EnableEncryptDecryptCmd",
             "RequestKeyAndIVCmd",
             "UpdateKeyAndIVCmd",
@@ -64,6 +68,8 @@
             public static readonly string[] SystemCmdNames =
             {
                 "AvailableCmdInfoCmd",
+                "AddToCmdInfoCmd",
+                "UpdateAvailableCmdInfoCmd",
                 "EnableEncryptDecryptCmd",
                 "RequestKeyAndIVCmd",
                 "UpdateKeyAndIVCmd",

@@ -47,6 +47,10 @@ namespace CE::tcp
         int GetConnectionID() const;
         // @brief Get the message ID of the message
         int GetMsgID() const;
+
+        void SetAcknowledgeMsgID(int msgID);
+        int GetAcknowledgeMsgID() const;
+
         // @brief Get the MsgPacket associated with this message, which can be used for transmission
         // @return Reference to the MsgPacket associated with this message
         MsgPacket& GetMsgPacket(); 
@@ -66,6 +70,8 @@ namespace CE::tcp
         std::string m_Name;
         MsgPacket m_MsgPacket;
         bool m_NeverEncrypted; // Flag to indicate if this message should never be encrypted, can be set by derived classes
+        int AcknowledgeMsgID; // if Not -1 then after sending msg must wait for acknowledge msg with this MsgID and can resend if not received within timeout
+
     };
 } // namespace CE::tcp
 

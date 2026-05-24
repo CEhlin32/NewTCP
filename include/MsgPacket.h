@@ -129,6 +129,7 @@ namespace CE::tcp
         // @return True if the packet is encrypted, false otherwise
         bool GetIsEncrypted() const;
 
+        
         // @brief Set the connection ID for the packet
         // @param connectionID The connection ID to set for the packet
         void SetConnectionID(int connectionID)
@@ -240,9 +241,9 @@ namespace CE::tcp
             int MsgID;
             int MsgBodySize;
             bool IsEncrypted;
-            uint8_t dummy1;
-            uint8_t dummy2;
-            uint8_t dummy3;
+            uint8_t dummy1; // padding for bool isEncrypted to ensure consistent struct size across different compilers/platforms
+            uint8_t dummy2; //
+            uint8_t dummy3; //
             int Postfix;
         };
         PacketHdrData m_Data;

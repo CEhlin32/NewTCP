@@ -125,12 +125,6 @@ namespace CE::tcp
         m_MsgPacket.SetBodyDataFromStr( jsonStr);
         m_MsgPacket.SetMsgBodySize( jsonStr.size());
 
-#if OLD_SERAILIZE        
-        std::string jsonStr = TCPMsgEnumManager::Get().Serialize();
-        m_MsgPacket.SetMsgBodySize( jsonStr.size());
-        m_MsgPacket.SetIsEncrypted( false);
-        m_MsgPacket.SetBodyDataFromStr( jsonStr);
-#endif        
     }
 
     void AvailableCmdInfoMsg::DeSerializeBody()
@@ -138,7 +132,70 @@ namespace CE::tcp
         std::string bodyStr = m_MsgPacket.GetBodyDataAsStr();
         TCPMsgEnumManager::Get().DeSerialize(bodyStr);
     }
+
+//////////////////////////////////////////////////////////////////////
+
+    AddToCmdInfoMsg::AddToCmdInfoMsg() : Msg("AddToCmdInfoCmd", AddToCmdInfoCmd)
+    {
+    }
+    AddToCmdInfoMsg::AddToCmdInfoMsg(MsgPacket& packet) : Msg("AddToCmdInfoCmd", packet)
+    {
+    }
+    AddToCmdInfoMsg::~AddToCmdInfoMsg()
+    {
+    }
+
+    void AddToCmdInfoMsg::AddInfo(const std::string& categoryName, const std::vector<std::string>& cmdNames)
+    {
+        CMD_INFOS_TO_ADD[categoryName] = cmdNames;
+    }
+
+    void AddToCmdInfoMsg::SerializeBody()
+    {
+        SetAcknowledgeMsgID(UpdateAvailableCmdInfoCmd); // After adding new cmd info, sender expects to receive updated full cmd info list
+
+        json j = *this;
+        std::string jsonStr = j.dump(1); // 
+        m_MsgPacket.SetMsgBodySize( jsonStr.size());
+        m_MsgPacket.SetBodyDataFromStr( jsonStr);   
+    }
+
+    void AddToCmdInfoMsg::DeSerializeBody()
+    {
+        json jsonBody = json::parse(m_MsgPacket.GetBodyDataAsStr());
+        CMD_INFOS_TO_ADD = jsonBody["CMD_INFOS_TO_ADD"].get<std::map<std::string, std::vector<std::string>>>();
+        for(const auto& [categoryName, cmdNames] : CMD_INFOS_TO_ADD)
+        {
+            TCPMsgEnumManager::Get().AddEnumExtender(categoryName, cmdNames);
+        }
+    }
+
+///////////////////////////////////////////////////////////////////////
+    UpdateAvailableCmdInfoMsg::UpdateAvailableCmdInfoMsg() : Msg("UpdateAvailableCmdInfoCmd", UpdateAvailableCmdInfoCmd)
+    {
+    }
+    UpdateAvailableCmdInfoMsg::UpdateAvailableCmdInfoMsg(MsgPacket& packet) : Msg("UpdateAvailableCmdInfoCmd", packet)
+    {
+    }
+    UpdateAvailableCmdInfoMsg::~UpdateAvailableCmdInfoMsg()
+    {
+    }
     
+    void UpdateAvailableCmdInfoMsg::SerializeBody()
+    {
+        json j = TCPMsgEnumManager::Get();
+        std::string jsonStr = j.dump(1); // 
+        
+        m_MsgPacket.SetBodyDataFromStr( jsonStr);
+        m_MsgPacket.SetMsgBodySize( jsonStr.size());
+
+    }
+
+    void UpdateAvailableCmdInfoMsg::DeSerializeBody()
+    {
+        std::string bodyStr = m_MsgPacket.GetBodyDataAsStr();
+        TCPMsgEnumManager::Get().DeSerialize(bodyStr);
+    }
 ///////////////////////////////////////////////////////////////////////
 
 

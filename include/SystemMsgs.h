@@ -26,11 +26,11 @@ namespace CE::tcp
             static TCPMsgEnumManager instance;
             return instance;
         }
-
         TCPMsgEnumManager() : EnumExtenderManager("TCPMsgEnumManager")
         {
             AddEnumExtender("TCPSystemCommands", SharedSysMsgConstants::SystemCmdNames);
         }
+
     };
 
     class TCPSystemMsgs : public CE::tcp::ICreateMsgFromPacket
@@ -114,8 +114,35 @@ namespace CE::tcp
         void SerializeBody() override ;
         void DeSerializeBody() override ;
     private:
-        std::vector<std::string> m_AvailableCmdNames;
-        NLOHMANN_DEFINE_TYPE_INTRUSIVE(AvailableCmdInfoMsg, m_AvailableCmdNames)
+    };    
+
+
+class AddToCmdInfoMsg : public Msg
+{
+public:
+    AddToCmdInfoMsg();
+    AddToCmdInfoMsg(MsgPacket& packet);
+    virtual ~AddToCmdInfoMsg();
+    
+    void AddInfo(const std::string& categoryName, const std::vector<std::string>& cmdNames);
+
+    void SerializeBody() override ;
+    void DeSerializeBody() override ;
+
+    private:
+        std::map<std::string, std::vector<std::string>> CMD_INFOS_TO_ADD;
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE(AddToCmdInfoMsg, CMD_INFOS_TO_ADD)
+};
+    class UpdateAvailableCmdInfoMsg : public Msg
+    {
+    public:
+        UpdateAvailableCmdInfoMsg();
+        UpdateAvailableCmdInfoMsg(MsgPacket& packet);
+        virtual ~UpdateAvailableCmdInfoMsg();
+
+    protected:    
+        void SerializeBody() override ;
+        void DeSerializeBody() override ;
     };    
 
 class AutherizationStartRequestMsg : public Msg

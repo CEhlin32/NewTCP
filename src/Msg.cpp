@@ -4,14 +4,14 @@
 namespace CE::tcp
 {
     Msg::Msg(std::string name, int msgID) : 
-        m_Name(name), m_MsgPacket(name, msgID), m_NeverEncrypted(false)
+        m_Name(name), m_MsgPacket(name, msgID), m_NeverEncrypted(false), AcknowledgeMsgID(-1)
     {
         m_MsgPacket.SetIsEncrypted(true); // Default to encrypted, can be overridden by derived classes;
         // Constructor implementation
     }
 
     Msg::Msg(std::string name, MsgPacket& packet) : 
-        m_Name(name), m_MsgPacket(packet), m_NeverEncrypted(false)
+        m_Name(name), m_MsgPacket(packet), m_NeverEncrypted(false), AcknowledgeMsgID(-1)
     {
         // Copy constructor implementation
         DeSerializeBody();
@@ -59,6 +59,16 @@ namespace CE::tcp
     int Msg::GetMsgID() const
     {
         return m_MsgPacket.GetMsgID();
+    }
+
+    int Msg::GetAcknowledgeMsgID() const
+    {
+        return AcknowledgeMsgID;
+    }
+
+    void Msg::SetAcknowledgeMsgID(int msgID)
+    {
+        AcknowledgeMsgID = msgID;
     }
     int Msg::GetConnectionID() const
     {

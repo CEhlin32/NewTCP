@@ -64,6 +64,7 @@ namespace CE::tcp
         m_Data.IsEncrypted = isEncrypted;
     }
 
+
     int MsgPacket::GetPostfix() const
     {
         return m_Data.Postfix;
