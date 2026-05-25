@@ -56,6 +56,7 @@ namespace CE::tcp
     // if at least one processor reported it handled the message.
     bool MsgProcessor::ProcessMsg(Msg* pMsg)
     {
+        cout << "Processing Msg " + pMsg->GetName()  << endl;
         bool completed = false;
         for(size_t i = 0; i < m_MsgProcessors.size(); ++i)
         {

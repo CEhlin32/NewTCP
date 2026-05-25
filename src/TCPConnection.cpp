@@ -398,6 +398,7 @@ namespace CE::tcp
         {
             return -1; // Exception occurred
         }
+        cout << "Sent Msg " + msg.GetName()  << endl;
         return 0; // Success
 
     }
@@ -422,12 +423,18 @@ namespace CE::tcp
     {
         if(m_Pairing == false)
         {
+            cout << "Encrypting NON PAIRING Msg " + packet.GetName() + " with : " << endl;
+            m_aes_encrypt.PrintKeyAndIV();
+
             // During pairing mode, we use the IV and key set for this connection without trying to find a match
             m_aes_encrypt.AES_CBC_encrypt_buffer(packet.GetBodyDataAsStr(),packet.GetPacketDataAsBytes());
 
         }
         else
         {
+            cout << "Encrypting PAIRING Msg " + packet.GetName() + " with : " << endl;
+            m_Pairing_aes_encrypt.PrintKeyAndIV();
+
             // During pairing mode, we use the IV and key set for this connection without trying to find a match
         // Implementation for encrypting a message
             m_Pairing_aes_encrypt.AES_CBC_encrypt_buffer(packet.GetBodyDataAsStr(),packet.GetPacketDataAsBytes());
@@ -441,6 +448,9 @@ namespace CE::tcp
         if(m_Pairing == false)
         {
             const IVToKeyMap& ivToKeyMap =  AESAccessManagement::Get()->GetIVToKeyMap();
+            cout << "Decrypting NON PAIRING Msg " + packet.GetName() + " with : " << endl;
+            m_aes_encrypt.PrintKeyAndIV();
+
             if(EncryptionSetupComplete == true )
             {
                 std::vector<uint8_t> decryptedData = m_aes_decrypt.AES_CBC_decrypt_buffer(packet.GetPacketDataAsBytes());
@@ -463,6 +473,10 @@ namespace CE::tcp
 
                     m_aes_decrypt.AES_init_ctx_iv(serverKey, serverIV);
                     m_aes_encrypt.AES_init_ctx_iv(serverKey, serverIV);
+
+                    cout << "TRYING Decrypting  PAIRING Msg " + packet.GetName() + " with : " << endl;
+                    m_aes_decrypt.PrintKeyAndIV();
+
                     std::vector<uint8_t> decryptedData = m_aes_decrypt.AES_CBC_decrypt_buffer(packet.GetPacketDataAsBytes());
                     if(decryptedData.size() > 0)
                     {
@@ -481,6 +495,7 @@ namespace CE::tcp
         }
         else
         {
+
             std::vector<uint8_t> decryptedData = m_Pairing_aes_decrypt.AES_CBC_decrypt_buffer(packet.GetPacketDataAsBytes());
             if(decryptedData.size() > 0)
             {

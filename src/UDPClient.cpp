@@ -147,7 +147,7 @@ namespace CE::tcp
             buffer[n] = '\0'; 
             TheAppLogger.LogMsgWithTime(DebugInfoLogOption::instance(),"Client : %s\n", buffer); 
             std::string requestStr(buffer);
-            if( (std::string::npos != requestStr.find("Discover SprinklerController") ) ||
+            if( (std::string::npos != requestStr.find("Discover EmulatingController") ) ||
                 (std::string::npos != requestStr.find("Discover All") ))
             {
                 cout << "Received discovery request: " << requestStr << endl;
