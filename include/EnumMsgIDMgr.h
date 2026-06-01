@@ -6,10 +6,9 @@
 #include <map>
 #include <EnumIDs.h>
 #include <Msg.h>
-#include <MsgProcessor.h>
 #include <nlohmann/json.hpp>
 using json = nlohmann::json_abi_v3_12_0::json;
-
+#ifdef OLD
 namespace CE::tcp
 {
 
@@ -38,6 +37,9 @@ class EnumMsgIDMgr : public IEnumIDMgr
 class MsgManager : public EnumMsgIDMgr
 {
     public:
+
+
+
         static MsgManager& Get();
         ~MsgManager() = default;
 
@@ -52,6 +54,8 @@ class MsgManager : public EnumMsgIDMgr
         std::string GetMsgNameFromID(int absID) const;
         
     private:
+
+
         MsgManager() = default;
         std::map<std::string, ICreateMsgFromPacket*> m_MsgCreators; // enumIDsName -> creator
         std::map<std::string, std::vector<IMsgProcessor*>> m_MsgProcessors; // enumIDsName -> list of processors
@@ -59,4 +63,5 @@ class MsgManager : public EnumMsgIDMgr
 
 } // namespace CE::tcp
 
+#endif // OLD
 #endif // ENUM_MSG_ID_MGR_H

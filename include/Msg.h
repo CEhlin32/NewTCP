@@ -29,7 +29,7 @@ namespace CE::tcp
         // @brief Constructor to initialize the message with a name and optional message ID
         // @param name The name of the message
         // @param msgID The message ID to set for the message packet (optional)
-        Msg(std::string name, int msgID = -1);
+        Msg(std::string name = "Unknown");
         // @brief Constructor to initialize the message with a name and a pre-constructed message packet
         // @param name The name of the message
         // @param packet The message packet to associate with this message

@@ -2,14 +2,16 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <SystemMsgs.h>
-
+#include <MsgManager.h>
+#include <string_view>
+#include <cstdint>
 namespace CE::tcp
 {
-    MsgPacket::MsgPacket(std::string name, int msgID) : m_Name(name), m_ConnectionID(msgID)
+    MsgPacket::MsgPacket(std::string name) : m_Name(name), m_ConnectionID(-1)
     {
         // Initialize packet data with default values
         m_Data.Prefix = 0xDEADBEEF; // Example prefix
-        m_Data.MsgID = TCPMsgEnumManager::Get().GetAbsoluteID(name);
+        m_Data.MsgID = MsgManager::GetInstance().GetMsgId(name);
         m_Data.MsgBodySize = 0;
         m_Data.IsEncrypted = false;
         m_Data.dummy1 = 0;
@@ -17,6 +19,7 @@ namespace CE::tcp
         m_Data.dummy3 = 0;
         m_Data.Postfix = 0xBEEFDEAD; // Example postfix
         ServerType = LOCAL_SERVER;
+
     }
     
 
@@ -37,15 +40,6 @@ namespace CE::tcp
         return m_Data.MsgID;
     }           
 
-    int MsgPacket::GetRelID()
-    {
-        return TCPMsgEnumManager::Get().GetRelativeID(m_Data.MsgID, "TCPSystemCommands");
-    }
-
-    int MsgPacket::GetAbsID()
-    {
-        return m_Data.MsgID;
-    }
     void MsgPacket::SetServerType(TCPServerTypes type)
     {
         ServerType = type;

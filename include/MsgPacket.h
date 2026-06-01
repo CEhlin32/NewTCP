@@ -89,7 +89,7 @@ namespace CE::tcp
         // @brief Constructor to initialize the message packet with a name and message ID
         // @param name The name of the message packet
         // @param msgID The message ID of the packet
-        MsgPacket(std::string name = "", int msgID = -1);
+        MsgPacket(std::string name = "Unknown");
         
         // @brief Destructor for the message packet
         virtual ~MsgPacket();
@@ -109,12 +109,6 @@ namespace CE::tcp
         // @brief Get the message ID of the packet
         // @return The message ID of the packet
         int GetMsgID() const;
-        // @brief Get the relative ID of the packet
-        // @return The relative ID of the packet
-        int GetRelID();
-        // @brief Get the absolute ID of the packet
-        // @return The absolute ID of the packet
-        int GetAbsID();
         // @brief Set the server type for the packet
         // @param type The TCP server type to set for the packet
         void SetServerType(TCPServerTypes type);
@@ -255,7 +249,6 @@ namespace CE::tcp
         CompondData m_BodyData;
         // @brief Holds the data to be sent or received over the network, either encrypted or plain
         CompondData m_PacketData;
-        bool IsMsgIDAbsolute = false;
     };
 } // namespace CE::tcp
 

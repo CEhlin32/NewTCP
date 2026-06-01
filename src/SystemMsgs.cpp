@@ -1,10 +1,8 @@
 #include <SystemMsgs.h>
 #include <Msg.h>
 
-#include <EnumExtender.h>   
 #include <SystemMsgConstants.cs.h>
-#include <EnumMsgIDMgr.h>
-
+#include <MsgManager.h>
 using namespace SharedSysMsgConstants;
 
 namespace CE::tcp
@@ -23,35 +21,35 @@ namespace CE::tcp
 
     Msg* TCPSystemMsgs::CreateMsg(MsgPacket& packet)
     {
-        EnumExtenderManager& enumManager = TCPMsgEnumManager::Get();
-        int relID = enumManager.GetRelativeID(packet.GetMsgID(), "TCPSystemCommands");
-        switch(relID)
+        switch(packet.GetMsgID())
         {
-            case CommunicationFailedCmd:
+            case MsgManager::IntHashOfStr("CommunicationFailedCmd"):
                 return  new CommunicationFailedMsg(packet);
-            case EnableEncryptDecryptCmd:
+            case MsgManager::IntHashOfStr("EnableEncryptDecryptCmd"):
                 return  new EnableEncryptDecryptMsg(packet);
-            case RequestKeyAndIVCmd:
+            case MsgManager::IntHashOfStr("RequestKeyAndIVCmd"):
                 return new RequestKeyAndIVMsg(packet);
-            case UpdateKeyAndIVCmd:
+            case MsgManager::IntHashOfStr("UpdateKeyAndIVCmd"):
                 return new UpdateKeyAndIVMsg(packet); 
-            case KeepAliveCmd:
+            case MsgManager::IntHashOfStr("KeepAliveCmd"):
                 return new KeepAliveMsg(packet);
-            case RemoteConnectionOkCmd:
+            case MsgManager::IntHashOfStr("RemoteConnectionOkCmd"):
                 return new RemoteConnectionOkMsg(packet);
-            case AutherizationStartRequestCmd:
+            case MsgManager::IntHashOfStr("AutherizationStartRequestCmd"):
                 return new AutherizationStartRequestMsg(packet);
-            case AutherizationReadyCmd:
+            case MsgManager::IntHashOfStr("AutherizationReadyCmd"):
                 return new AutherizationReadyMsg(packet);
-            case AutherizationValidationCmd:
+            case MsgManager::IntHashOfStr("AutherizationValidationCmd"):
                 return new AutherizationValidationMsg(packet);
-            case ValidateIVCmd:
+            case MsgManager::IntHashOfStr("ValidateIVCmd"):
                 return new ValidateIVMsg(packet);
-            case ValidateIVResultCmd:
+            case MsgManager::IntHashOfStr("ValidateIVResultCmd"):
                 return new ValidateIVResultMsg(packet);
-            case DebugQueryCmd:
+            case MsgManager::IntHashOfStr("AddToCmdInfoCmd"):
+                return new AddToCmdInfoMsg(packet);
+            case MsgManager::IntHashOfStr("DebugQueryCmd"):
                 return new DebugQueryMsg(packet);
-            case DebugResponseCmd:
+            case MsgManager::IntHashOfStr("DebugResponseCmd"):
                 return new DebugResponseMsg(packet);
             
             default:
@@ -60,7 +58,7 @@ namespace CE::tcp
         return nullptr;
     }
     
-    RemoteConnectionTestMsg::RemoteConnectionTestMsg() : Msg("RemoteConnectionTestCmd", RemoteConnectionTestCmd)
+    RemoteConnectionTestMsg::RemoteConnectionTestMsg() : Msg("RemoteConnectionTestCmd")
     {
     }
 
@@ -74,7 +72,7 @@ namespace CE::tcp
 
     //////////////////////////////////////
 
-    CommunicationFailedMsg::CommunicationFailedMsg() : Msg("CommunicationFailedCmd", CommunicationFailedCmd)
+    CommunicationFailedMsg::CommunicationFailedMsg() : Msg("CommunicationFailedCmd")
     {
         // never encrypted
         SetNeverEncrypted();
@@ -107,7 +105,7 @@ namespace CE::tcp
 
 ////////////////////////////////////////////////////////////////////
     
-    AvailableCmdInfoMsg::AvailableCmdInfoMsg() : Msg("AvailableCmdInfoCmd", AvailableCmdInfoCmd)
+    AvailableCmdInfoMsg::AvailableCmdInfoMsg() : Msg("AvailableCmdInfoCmd")
     {
     }
     AvailableCmdInfoMsg::AvailableCmdInfoMsg(MsgPacket& packet) : Msg("AvailableCmdInfoCmd", packet)
@@ -119,23 +117,15 @@ namespace CE::tcp
 
     void AvailableCmdInfoMsg::SerializeBody()
     {
-        json j = TCPMsgEnumManager::Get();
-        std::string jsonStr = j.dump(1); // 
-        
-        m_MsgPacket.SetBodyDataFromStr( jsonStr);
-        m_MsgPacket.SetMsgBodySize( jsonStr.size());
-
     }
 
     void AvailableCmdInfoMsg::DeSerializeBody()
     {
-        std::string bodyStr = m_MsgPacket.GetBodyDataAsStr();
-        TCPMsgEnumManager::Get().DeSerialize(bodyStr);
     }
 
 //////////////////////////////////////////////////////////////////////
 
-    AddToCmdInfoMsg::AddToCmdInfoMsg() : Msg("AddToCmdInfoCmd", AddToCmdInfoCmd)
+    AddToCmdInfoMsg::AddToCmdInfoMsg() : Msg("AddToCmdInfoCmd")
     {
     }
     AddToCmdInfoMsg::AddToCmdInfoMsg(MsgPacket& packet) : Msg("AddToCmdInfoCmd", packet)
@@ -164,14 +154,10 @@ namespace CE::tcp
     {
         json jsonBody = json::parse(m_MsgPacket.GetBodyDataAsStr());
         CMD_INFOS_TO_ADD = jsonBody["CMD_INFOS_TO_ADD"].get<std::map<std::string, std::vector<std::string>>>();
-        for(const auto& [categoryName, cmdNames] : CMD_INFOS_TO_ADD)
-        {
-            TCPMsgEnumManager::Get().AddEnumExtender(categoryName, cmdNames);
-        }
     }
 
 ///////////////////////////////////////////////////////////////////////
-    UpdateAvailableCmdInfoMsg::UpdateAvailableCmdInfoMsg() : Msg("UpdateAvailableCmdInfoCmd", UpdateAvailableCmdInfoCmd)
+    UpdateAvailableCmdInfoMsg::UpdateAvailableCmdInfoMsg() : Msg("UpdateAvailableCmdInfoCmd")
     {
     }
     UpdateAvailableCmdInfoMsg::UpdateAvailableCmdInfoMsg(MsgPacket& packet) : Msg("UpdateAvailableCmdInfoCmd", packet)
@@ -183,24 +169,17 @@ namespace CE::tcp
     
     void UpdateAvailableCmdInfoMsg::SerializeBody()
     {
-        json j = TCPMsgEnumManager::Get();
-        std::string jsonStr = j.dump(1); // 
-        
-        m_MsgPacket.SetBodyDataFromStr( jsonStr);
-        m_MsgPacket.SetMsgBodySize( jsonStr.size());
 
     }
 
     void UpdateAvailableCmdInfoMsg::DeSerializeBody()
     {
-        std::string bodyStr = m_MsgPacket.GetBodyDataAsStr();
-        TCPMsgEnumManager::Get().DeSerialize(bodyStr);
     }
 ///////////////////////////////////////////////////////////////////////
 
 
     AutherizationStartRequestMsg::AutherizationStartRequestMsg() : 
-        Msg("AutherizationStartRequestCmd", AutherizationStartRequestCmd)
+        Msg("AutherizationStartRequestCmd")
     {
         m_MsgPacket.SetIsEncrypted(false); // This message should not be encrypted
     }
@@ -230,7 +209,7 @@ namespace CE::tcp
     }
     //////////////////////////////////////////////////////////////////
 
-    AutherizationReadyMsg::AutherizationReadyMsg() : Msg("AutherizationReadyCmd", AutherizationReadyCmd)
+    AutherizationReadyMsg::AutherizationReadyMsg() : Msg("AutherizationReadyCmd")
     {
     }
 
@@ -245,7 +224,7 @@ namespace CE::tcp
 
     ////////////////////////////////////////////////////////////////
 
-    AutherizationValidationMsg::AutherizationValidationMsg() : Msg("AutherizationValidationCmd", AutherizationValidationCmd)
+    AutherizationValidationMsg::AutherizationValidationMsg() : Msg("AutherizationValidationCmd")
     {
     }
     AutherizationValidationMsg::AutherizationValidationMsg(MsgPacket& packet) : Msg("AutherizationValidationCmd", packet)
@@ -270,7 +249,7 @@ namespace CE::tcp
     }
 
     ////////////////////////////////////////////////////////////////
-    AutherizationValidationResponseMsg::AutherizationValidationResponseMsg() : Msg("AutherizationValidationResponseCmd", AutherizationValidationResponseCmd)
+    AutherizationValidationResponseMsg::AutherizationValidationResponseMsg() : Msg("AutherizationValidationResponseCmd")
     {
     }
     AutherizationValidationResponseMsg::AutherizationValidationResponseMsg(MsgPacket& packet) : Msg("AutherizationValidationResponseCmd", packet)
@@ -294,7 +273,7 @@ namespace CE::tcp
     }
 
     ////////////////////////////////////////////////////////////////
-    AutherizationEndMsg::AutherizationEndMsg() : Msg("AutherizationEndCmd", AutherizationEndCmd)
+    AutherizationEndMsg::AutherizationEndMsg() : Msg("AutherizationEndCmd")
     {
     }   
     AutherizationEndMsg::AutherizationEndMsg(MsgPacket& packet) : Msg("AutherizationEndCmd", packet)
@@ -305,7 +284,7 @@ namespace CE::tcp
     }
     ////////////////////////////////////////////////////////////////
 
-    EnableEncryptDecryptMsg::EnableEncryptDecryptMsg() : Msg("EnableEncryptDecryptCmd", EnableEncryptDecryptCmd)
+    EnableEncryptDecryptMsg::EnableEncryptDecryptMsg() : Msg("EnableEncryptDecryptCmd")
     {
     }
 
@@ -322,7 +301,7 @@ namespace CE::tcp
 
     //////////////////////////////////////////////////////////////////////ValidateIVMsg/
 
-    ValidateIVMsg::ValidateIVMsg() : Msg("ValidateIVCmd",  ValidateIVCmd)
+    ValidateIVMsg::ValidateIVMsg() : Msg("ValidateIVCmd")
     {
     }
     ValidateIVMsg::ValidateIVMsg(MsgPacket& packet) : 
@@ -359,7 +338,7 @@ namespace CE::tcp
     }
 
     //////////////////////////////////////////////////////////////////////ValidateIVMsg/
-    ValidateIVResultMsg::ValidateIVResultMsg() : Msg( "ValidateIVResultCmd",ValidateIVResultCmd)
+    ValidateIVResultMsg::ValidateIVResultMsg() : Msg( "ValidateIVResultCmd")
     {
     }
 
@@ -400,7 +379,7 @@ namespace CE::tcp
 
     ///////////////////////////////////////////////////////////////////////////////////
 
-    UpdateKeyAndIVMsg::UpdateKeyAndIVMsg() : Msg("UpdateKeyAndIVCmd", UpdateKeyAndIVCmd)
+    UpdateKeyAndIVMsg::UpdateKeyAndIVMsg() : Msg("UpdateKeyAndIVCmd")
     {
         CreateNewKeyAndIV();
     }
@@ -460,7 +439,7 @@ namespace CE::tcp
         return IV_AND_KEY;
     }
     //////////////////////////////////////////////////////////////////////ValidateIVMsg/
-    DebugQueryMsg::DebugQueryMsg() : Msg("DebugQueryCmd", DebugQueryCmd) 
+    DebugQueryMsg::DebugQueryMsg() : Msg("DebugQueryCmd") 
     {
     }
 
@@ -498,7 +477,7 @@ namespace CE::tcp
 
 
     ////////////////////////////////////////////////////////////////////
-    DebugResponseMsg::DebugResponseMsg() : Msg("DebugResponseCmd", DebugResponseCmd)
+    DebugResponseMsg::DebugResponseMsg() : Msg("DebugResponseCmd")
     {
     }   
     DebugResponseMsg::DebugResponseMsg(MsgPacket& packet) : 
@@ -536,7 +515,7 @@ namespace CE::tcp
 
 
     ////////////////////////////////////////////////////////////
-    KeepAliveMsg::KeepAliveMsg() : Msg("KeepAlive", KeepAliveCmd)
+    KeepAliveMsg::KeepAliveMsg() : Msg("KeepAlive")
     {
     }
     KeepAliveMsg::KeepAliveMsg(MsgPacket& packet) : 
@@ -549,7 +528,7 @@ namespace CE::tcp
 
 
     ///////////////////////////////////////////////////
-    RemoteConnectionOkMsg::RemoteConnectionOkMsg() : Msg("RemoteConnectionOk", RemoteConnectionOkCmd)
+    RemoteConnectionOkMsg::RemoteConnectionOkMsg() : Msg("RemoteConnectionOk")
     {
     }   
     RemoteConnectionOkMsg::RemoteConnectionOkMsg(MsgPacket& packet) : 
@@ -562,7 +541,7 @@ namespace CE::tcp
 
 
     ////////////////////////////////////////////////////////////////////
-    RequestKeyAndIVMsg::RequestKeyAndIVMsg() : Msg("RequestKeyAndIV", RequestKeyAndIVCmd)
+    RequestKeyAndIVMsg::RequestKeyAndIVMsg() : Msg("RequestKeyAndIV")
     {
     }
     RequestKeyAndIVMsg::RequestKeyAndIVMsg(MsgPacket& packet) : 

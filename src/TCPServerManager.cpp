@@ -3,7 +3,7 @@
 #include <DebReport.h>
 #include <SystemMsgConstants.cs.h>
 #include <TCPLogOptions.h>
-
+#include <MsgManager.h>
 namespace CE::tcp
 {
 
@@ -21,10 +21,7 @@ namespace CE::tcp
     {
         theInstance = this;
         TCPLogOptionGroup::instance(); // make sure it is initialized and registered as a LogOptionGroup
-        baseID = CE::tcp::MsgManager::Get().AddEnumIDs(SystemMsgEnumIDs);
-
-
-        TCPSystemMsgs::GetInstance(); // make sure it is initialized and registered as a MsgCreator
+        MsgManager::GetInstance().RegisterMsgNames(SharedSysMsgConstants::SystemCmdNames);
         m_ControllerName = controllerName;
         m_NumberOfConnections = 0;
         m_NumberOfLocalConnecions = 0;

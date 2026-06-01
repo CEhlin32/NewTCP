@@ -1,4 +1,4 @@
-#include <MsgProcessor.h>
+#ifdef OLD_CODE
 
 #include <Msg.h>
 #include <SystemMsgs.h>
@@ -105,4 +105,4 @@ namespace CE::tcp
         return nullptr;
     }
 } // namespace CE::tcp
-
+#endif // OLD_CODE

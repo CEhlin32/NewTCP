@@ -4,16 +4,14 @@
 #include <algorithm>
 #include <MsgPacket.h>
 #include <MyExceptions.h>
-#include <MsgProcessor.h>
 
 #include <SystemMsgs.h>
 #include <Autherization.h>
 #include <Logger.h>
 #include <DebugSupport.h>
-#include <EnumExtender.h>
 #include <EnumMsgIDMgr.h>
-
 #include <SystemMsgConstants.cs.h>
+#include <MsgManager.h>
 
 namespace CE::tcp
 {
@@ -35,7 +33,8 @@ namespace CE::tcp
         m_KeepAlive(false)
     {
         m_ConnectionStatus.status = TCPConnectionStatus::Connection_Available;
-    }
+        MsgManager::GetInstance().RegisterMsgNames(SharedSysMsgConstants::SystemCmdNames);
+ }
 
     TCPConnection::~TCPConnection()
     {
@@ -59,8 +58,6 @@ namespace CE::tcp
 
     bool TCPConnection::StartReadThread()
     {
-        MsgProcessor::AddMsgProcessor(this);
-        MsgManager::Get().AddToMsgProcessors("TCPSystemCommands", this);
         m_pReadThread = new NamedThread("TCPConnectionReadThread",
             &TCPConnection::ReadThreadFunction, this);
         m_ReadThreadId = m_pReadThread->get_id();
@@ -80,7 +77,6 @@ namespace CE::tcp
             delete m_pReadThread;
             m_pReadThread = nullptr;
         }
-        MsgProcessor::RemoveMsgProcessor(this);
     }   
 
     TCPConnectionStatus::ServerStatus TCPConnection::GetConnectionStatus() const
@@ -88,6 +84,53 @@ namespace CE::tcp
         return m_ConnectionStatus.status;
     }
     
+
+    int TCPConnection::ReadNoBodyMsg(Msg& msg, MsgPacket& packet)
+    {
+        // For messages with no body, 
+        //we can directly create the Msg instance based on the header information
+        msg = *MsgManager::GetInstance().CreateMsgFromPacket(packet);
+
+        // returns  1 if suceesful.
+        // -1, there was an error creating msg.
+        if(msg.GetMsgID() == 0)
+        {
+            return -1; // Error creating message, invalid MsgID
+        }   
+        return 0; // Return 0 for success
+    }
+    int TCPConnection::ReadEncryptedBodyMsg(Msg& msg, MsgPacket& packet, size_t sizeToRead)
+    {
+        // For messages with an encrypted body, 
+        //we need to read the body data, decrypt it, and then create the Msg instance
+        Msg * pMsg = DecryptMsg(packet);
+        msg = *pMsg;
+        if(pMsg == nullptr)
+        {
+            return -1; // Error decrypting message or creating message instance
+        }
+        return 1; // Return 1 for success
+    }
+
+    int TCPConnection::ReadUnEncryptedBodyMsg(Msg& msg, MsgPacket& packet, size_t sizeToRead)
+    {   
+        // For messages with an unencrypted body, 
+        //we can read the body data directly and then create the Msg instance
+        std::vector<uint8_t> bodyData(sizeToRead);
+        size_t sizeRead = read(m_socket_fd, bodyData.data(), sizeToRead);
+        if(sizeRead != sizeToRead)
+        {
+            return -1; // Error reading body data
+        }
+        packet.SetPacketDataFromBytes(bodyData);
+        Msg * pMsg = MsgManager::GetInstance().CreateMsgFromPacket(packet);
+        msg = *pMsg;
+        if(pMsg == nullptr)        {
+            return -1; // Error creating message instance
+        }
+        return 1; // Return 1 for success
+    }
+
     void TCPConnection::ReadThreadFunction()
     {
         m_ActiveConnections.push_back(this);
@@ -95,6 +138,8 @@ namespace CE::tcp
         m_KeepAlive = true;
         m_Pairing = false; // Reset pairing mode when starting read thread for a new connection
         EncryptionSetupComplete = false;
+        Msg* pMsg = nullptr;
+        
         // Implementation for reading data from the socket
         while(m_KeepAlive == true)
         {
@@ -107,97 +152,91 @@ namespace CE::tcp
                 // Handle read error or disconnection
                 break;
             }
-        
-            // Read Msg body using size from header
-            size_t sizeToRead = packet.GetMsgBodySize();
-
-            if(sizeToRead > 0)
+            // make sure MsgID is valid
+            if( MsgManager::GetInstance().IsValidID(packet.GetMsgID()) == false)
             {
-                // If encryption is enabled, we need to read the data in multiples of the AES block size (16 bytes)
-                if(packet.GetIsEncrypted())
+                // Read Body if there is one
+                size_t sizeToRead = packet.GetMsgBodySize();
+                size_t sizeRead = 0;
+                if( packet.GetIsEncrypted())
                 {
-                    sizeToRead = sizeToRead + (16 - (sizeToRead % 16)); 
-//                    sizeToRead = ((sizeToRead + 15) / 16) * 16; // AES block size is 16 bytes
-                }
-                // Create a buffer to hold the received data
-                std::vector<uint8_t> receivedData(sizeToRead);
-                // Read the data into the buffer
-                size_t sizeRead = read(m_socket_fd, receivedData.data(), sizeToRead);
-                // 
-                if(sizeToRead != sizeRead)
-                {
-                    // Handle read error or disconnection
-                    break;  
-                }
-
-                packet.SetPacketDataFromBytes(receivedData);
-                if(packet.GetMsgID() == SharedSysMsgConstants::AutherizationStartRequestCmd)
-                {
-                    // Handle pairing mode for AutherizationStartRequestCmd without decryption  
-                    m_Pairing = true;
-                    packet.SetBodyDataFromStr(packet.GetPacketDataAsStr());
-                    Msg* pMsg = new AutherizationStartRequestMsg(packet);
-                    MsgProcessor::ProcessMsg(pMsg);
-                    delete pMsg;
-                    continue;
+                    sizeToRead = packet.GetMsgBodySize();
+                    // If Msg is encrypted, we need to read the body data to get the full packet for decryption attempt, even if MsgID is invalid, to determine if failure is due to decryption failure or unknown MsgID
+                    std::vector<uint8_t> bodyData(sizeToRead);
+                    sizeRead = read(m_socket_fd, bodyData.data(), sizeToRead);
                 }
                 else
                 {
-                    // make sure MsgID is valid
-                    if( MsgManager::Get().IsValidID(packet.GetMsgID()) == false)
+                    std::vector<uint8_t> bodyData(sizeToRead);
+                    sizeRead = read(m_socket_fd, bodyData.data(), sizeToRead);
+                }
+
+                CommunicationFailedMsg resultMsg;
+                resultMsg.SetReasonCode(CommunicationFailedMsg::UnknownMsgID); // Set reason code for refusal
+                resultMsg.SetMsgID(packet.GetMsgID()); // Set the MsgID that caused the failure
+                Send(resultMsg);
+                continue; // Continue to next iteration to keep connection alive for valid future messages
+            }
+        
+            // Read Msg body using size from header
+            size_t sizeToRead = packet.GetMsgBodySize();
+            int result = 0;
+            if(sizeToRead == 0)
+            {
+                result = ReadNoBodyMsg(*pMsg, packet);
+            }
+            else if(sizeToRead > 0)
+            {
+                if(packet.GetIsEncrypted())
+                {
+                    // If Msg is encrypted, need to adjust size to read to be modula 16
+                    sizeToRead = sizeToRead + (16 - (sizeToRead % 16));
+                }
+                std::vector<uint8_t> bodyData(sizeToRead);
+                size_t sizeRead = read(m_socket_fd, bodyData.data(), sizeToRead);
+                if(sizeRead != sizeToRead)
+                {
+                    if(sizeRead != 0)
                     {
-                        CommunicationFailedMsg resultMsg;
-                        resultMsg.SetReasonCode(CommunicationFailedMsg::UnknownMsgID); // Set reason code for refusal
-                        resultMsg.SetMsgID(packet.GetMsgID()); // Set the MsgID that caused the failure
-                        Send(resultMsg);
-                        continue; 
+                        result = -1; // Error reading body data
                     }
-                    // Decrypt Msg here
-                    Msg *pMsg = DecryptMsg(packet);
-                    if( pMsg == nullptr)
-                    {
-                        if(packet.GetMsgID() == SharedSysMsgConstants::ValidateIVCmd)
-                        {
-                            // Send ConnectionRefusedMsg with reason code for invalid IV 
-                            // if decryption fails for ValidateIVCmd, which is critical for security,
-                            // new Pairing is required.
-                            CommunicationFailedMsg resultMsg;
-                            resultMsg.SetReasonCode(CommunicationFailedMsg::InvalidIV); // Set reason code for refusal
-                            resultMsg.SetMsgID(packet.GetMsgID()); // Set the MsgID that caused the failure
-                            Send(resultMsg);
-                        }
-                        else
-                        {
-                            CommunicationFailedMsg resultMsg;
-                            resultMsg.SetReasonCode(CommunicationFailedMsg::DecryptionFailed); // Set reason code for refusal
-                            resultMsg.SetMsgID(packet.GetMsgID()); // Set the MsgID that caused the failure
-                            Send(resultMsg);
-                        }
-                        continue; // ????????
-                    }
-                    else
-                    {
-                        MsgProcessor::ProcessMsg(pMsg);
-                        delete pMsg;
-                    }
+                    result = 0; // client closed connection Return 0 for clean disconnect 
+
+                }
+                if(packet.GetIsEncrypted())
+                {
+                    packet.SetPacketDataFromBytes(bodyData);
+                    result = ReadEncryptedBodyMsg(*pMsg, packet, sizeToRead);
+                }
+                else
+                {
+                    packet.SetPacketDataFromBytes(bodyData);
+                    result = ReadUnEncryptedBodyMsg(*pMsg, packet, sizeToRead);
                 }
 
             }
-            else
+            if( pMsg != nullptr)
             {
-                // If no body data, we can process the Msg directly
-                packet.SetBodyDataFromBytes(packet.GetPacketDataAsBytes());
-                MsgProcessor::ProcessMsgFromPacket(packet);
+                ProcessMsg(*pMsg);
+                delete pMsg;
+                pMsg = nullptr;
+                continue;
             }
-
+            // If we reach here, 
+            //it means there was an issue with reading or processing the message, 
+            //we can choose to break the loop or continue based on the type of error
+            if(result == 0)
+            {
+                // Clean disconnect by client
+                break;
+            }
+            continue;
         }
 
         m_KeepAlive = false;
         close(m_socket_fd);
         m_ActiveConnections.erase(std::remove(m_ActiveConnections.begin(), m_ActiveConnections.end(), this), m_ActiveConnections.end());
         m_ConnectionStatus.status = TCPConnectionStatus::Connection_Available;
-        
-        MsgProcessor::RemoveMsgProcessor(this);
     }
 
 
@@ -205,17 +244,16 @@ namespace CE::tcp
     bool TCPConnection::ProcessMsg(Msg& msg)
     {
         bool result = true;
-        int absMessageID = msg.GetMsgID();
-        int relMessageID = TCPMsgEnumManager::Get().GetRelativeID(absMessageID, "TCPSystemCommands");
-        switch(relMessageID)
+        switch(msg.GetMsgID())
         {
-            case SharedSysMsgConstants::EnableEncryptDecryptCmd:
+            case MsgManager::IntHashOfStr("EnableEncryptDecryptCmd"):
             {               
                 // send msg info data
                 break;
             }
-            case SharedSysMsgConstants::AutherizationStartRequestCmd:
+            case MsgManager::IntHashOfStr("AutherizationStartRequestCmd"):
             {
+                m_Pairing = true;
                 AutherizationStartRequestMsg& authReqMsg = (AutherizationStartRequestMsg&)msg;
                 Autherization * pAuth = Autherization::Get();
                 pAuth->StartAutherizationMode(authReqMsg.GetInitValue());
@@ -229,7 +267,7 @@ namespace CE::tcp
                 break;
             }
 
-            case SharedSysMsgConstants::AutherizationValidationCmd:
+            case MsgManager::IntHashOfStr("AutherizationValidationCmd"):
             {
                 AutherizationValidationMsg& authValidationMsg = (AutherizationValidationMsg&)msg;
                 CryptoBlockVector ivToValidate = authValidationMsg.IV_TO_VALIDATE;
@@ -266,7 +304,7 @@ namespace CE::tcp
                 break;
             }
 
-            case SharedSysMsgConstants::RequestKeyAndIVCmd:
+            case MsgManager::IntHashOfStr("RequestKeyAndIVCmd"):
             {
                 UpdateKeyAndIVMsg setKeyAndIVMsg;
                 AESAccessManagement::Get()->AddASEKeyAndIV(setKeyAndIVMsg.GetIVAndKeyValues());
@@ -275,7 +313,7 @@ namespace CE::tcp
             }
             break;
 
-            case SharedSysMsgConstants::ValidateIVCmd:
+            case MsgManager::IntHashOfStr("ValidateIVCmd"):
             {
                 // Handle ValidateIV command
                 bool ivIsValid = true;
@@ -305,7 +343,12 @@ namespace CE::tcp
 
                 break;
             }
-            case SharedSysMsgConstants::DebugQueryCmd:
+
+            case MsgManager::IntHashOfStr("AddToCmdInfoCmd"):
+            {
+                break;
+            }
+            case MsgManager::IntHashOfStr("DebugQueryCmd"):
             {
                 DebugQueryMsg& debugQueryMsg = (DebugQueryMsg&)msg;
                 // just respond with debug response
@@ -327,6 +370,7 @@ namespace CE::tcp
                 result = false;
                 break;
         }   
+        result |= MsgManager::GetInstance().ProcessMsgs(msg);
         return result;
     }
 
@@ -457,7 +501,7 @@ namespace CE::tcp
                 if(decryptedData.size() > 0)
                 {
                     packet.SetBodyDataFromBytes(decryptedData);
-                    Msg* pMsg = MsgProcessor::CreateMsgFromPacket(packet);
+                    Msg* pMsg = MsgManager::GetInstance().CreateMsgFromPacket(packet);
                     if(pMsg != nullptr)
                     {
                         return pMsg;
@@ -481,7 +525,7 @@ namespace CE::tcp
                     if(decryptedData.size() > 0)
                     {
                         packet.SetBodyDataFromBytes(decryptedData);
-                        Msg* pMsg = MsgProcessor::CreateMsgFromPacket(packet);
+                        Msg* pMsg = MsgManager::GetInstance().CreateMsgFromPacket(packet);
                         if(pMsg != nullptr)
                         {
                             EncryptionSetupComplete = true; // Set flag to true after successful decryption with any key-IV pair
@@ -500,7 +544,7 @@ namespace CE::tcp
             if(decryptedData.size() > 0)
             {
                 packet.SetBodyDataFromBytes(decryptedData);
-                Msg* pMsg = MsgProcessor::CreateMsgFromPacket(packet);
+                Msg* pMsg = MsgManager::GetInstance().CreateMsgFromPacket(packet);
                 return pMsg;
             }
         }

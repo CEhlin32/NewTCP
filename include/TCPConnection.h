@@ -1,7 +1,6 @@
 #ifndef TCP_CONNECTION_H
 #define TCP_CONNECTION_H
 
-#include <MsgProcessor.h>
 #include <AESEncryptor.h>
 #include <AESDecryptor.h>
 #include <Thread.h>
@@ -49,7 +48,7 @@ namespace CE::tcp
         int ConnectionID;   
     };
 
-    class TCPConnection : public IMsgProcessor
+    class TCPConnection 
     {
     public:
 
@@ -70,8 +69,12 @@ namespace CE::tcp
         TCPConnectionStatus::ServerStatus GetConnectionStatus() const;
         static int SubscribeToConnectionComplete(SubscriberBase *subscriber);
     protected:
-        void ReadThreadFunction();   
-        bool ProcessMsg(Msg& msg) override; 
+        void ReadThreadFunction();
+        int ReadNoBodyMsg(Msg& msg, MsgPacket& packet);
+        int ReadEncryptedBodyMsg(Msg& msg, MsgPacket& packet, size_t sizeToRead);
+        int ReadUnEncryptedBodyMsg(Msg& msg, MsgPacket& packet, size_t sizeToRead);
+
+        bool ProcessMsg(Msg& msg); 
         NamedThread *m_pReadThread;
         thread::id m_ReadThreadId;
         TCPConnectionStatus m_ConnectionStatus;

@@ -1,6 +1,6 @@
 #ifndef NEW_MSG_FACTORY_H
 #define NEW_MSG_FACTORY_H
-
+#ifdef OLD_CODE
 #include <vector>
 #include <Msg.h>
 #include <MsgPacket.h>
@@ -114,3 +114,4 @@ protected:
 
 
 #endif // NEW_MSG_FACTORY_H
+#endif

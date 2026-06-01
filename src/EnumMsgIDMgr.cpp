@@ -1,6 +1,7 @@
 #include <EnumMsgIDMgr.h>
 #include <SystemMsgs.h>
 
+#ifdef OLD_CODE
 namespace CE::tcp
 {
         int EnumMsgIDMgr::AddEnumIDs(const EnumIDs& enumIDs)
@@ -148,3 +149,4 @@ namespace CE::tcp
         }
         
     }
+#endif // OLD_CODE

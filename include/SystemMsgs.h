@@ -5,11 +5,9 @@
 #include <JSONValueWrapper.h>
 #include <CryptoKeyIV.h>
 #include <AESSupport.h>
-#include <EnumExtender.h>
 #include <EnumIDs.h>
 
 #include <nlohmann/json.hpp>
-#include <MsgProcessor.h>
 #include <SystemMsgConstants.cs.h>
 
 using json = nlohmann::json_abi_v3_12_0::json;
@@ -17,23 +15,7 @@ using json = nlohmann::json_abi_v3_12_0::json;
 namespace CE::tcp
 {
 
-
-    class TCPMsgEnumManager : public EnumExtenderManager
-    {
-    public:
-        static TCPMsgEnumManager& Get()
-        {
-            static TCPMsgEnumManager instance;
-            return instance;
-        }
-        TCPMsgEnumManager() : EnumExtenderManager("TCPMsgEnumManager")
-        {
-            AddEnumExtender("TCPSystemCommands", SharedSysMsgConstants::SystemCmdNames);
-        }
-
-    };
-
-    class TCPSystemMsgs : public CE::tcp::ICreateMsgFromPacket
+    class TCPSystemMsgs 
     {
     public:
             static TCPSystemMsgs& GetInstance()
@@ -47,7 +29,7 @@ namespace CE::tcp
             TCPSystemMsgs();
             TCPSystemMsgs(const TCPSystemMsgs&) = delete;
             TCPSystemMsgs& operator=(const TCPSystemMsgs&) = delete;
-            Msg* CreateMsg(CE::tcp::MsgPacket& packet) override;
+            Msg* CreateMsg(CE::tcp::MsgPacket& packet);
         const std::string TCPSystemMsgCommandsName;
         EnumIDs TCPSystemMsgEnumIDs;
         int baseID = 0;
@@ -129,9 +111,8 @@ public:
     void SerializeBody() override ;
     void DeSerializeBody() override ;
 
-    private:
-        std::map<std::string, std::vector<std::string>> CMD_INFOS_TO_ADD;
-        NLOHMANN_DEFINE_TYPE_INTRUSIVE(AddToCmdInfoMsg, CMD_INFOS_TO_ADD)
+    std::map<std::string, std::vector<std::string>> CMD_INFOS_TO_ADD;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(AddToCmdInfoMsg, CMD_INFOS_TO_ADD)
 };
     class UpdateAvailableCmdInfoMsg : public Msg
     {

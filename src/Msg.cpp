@@ -3,8 +3,8 @@
 
 namespace CE::tcp
 {
-    Msg::Msg(std::string name, int msgID) : 
-        m_Name(name), m_MsgPacket(name, msgID), m_NeverEncrypted(false), AcknowledgeMsgID(-1)
+    Msg::Msg(std::string name) : 
+        m_Name(name), m_MsgPacket(name), m_NeverEncrypted(false), AcknowledgeMsgID(-1)
     {
         m_MsgPacket.SetIsEncrypted(true); // Default to encrypted, can be overridden by derived classes;
         // Constructor implementation
