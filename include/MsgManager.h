@@ -145,6 +145,7 @@ public:
 
 private:
         MsgManager(); 
+        static MsgManager* instance;
         std::map<std::string, int32_t> registry;
         std::vector<ProcessMsg> MsgProcessors;
         std::vector<CreateMsg> MsgCreators;

@@ -28,7 +28,6 @@ namespace CE::tcp
     private:
 
         inline static TCPServerManager* theInstance;
-        EnumIDs SystemMsgEnumIDs;
         int baseID;
         std::string m_ControllerName;
         std::vector<CE::tcp::TCPServer*> m_activeServers;

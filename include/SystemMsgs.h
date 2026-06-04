@@ -5,7 +5,6 @@
 #include <JSONValueWrapper.h>
 #include <CryptoKeyIV.h>
 #include <AESSupport.h>
-#include <EnumIDs.h>
 
 #include <nlohmann/json.hpp>
 #include <SystemMsgConstants.cs.h>
@@ -24,14 +23,12 @@ namespace CE::tcp
                 return instance;
             }
 
-        EnumIDs GetTCPSystemMsgEnumIDs();
     private:
             TCPSystemMsgs();
             TCPSystemMsgs(const TCPSystemMsgs&) = delete;
             TCPSystemMsgs& operator=(const TCPSystemMsgs&) = delete;
             Msg* CreateMsg(CE::tcp::MsgPacket& packet);
         const std::string TCPSystemMsgCommandsName;
-        EnumIDs TCPSystemMsgEnumIDs;
         int baseID = 0;
     };
 
@@ -84,7 +81,7 @@ namespace CE::tcp
         NLOHMANN_DEFINE_TYPE_INTRUSIVE(CommunicationFailedMsg, REASON_CODE, MSG_ID)        
     };
 
-
+#ifdef OLD_CODE
     class AvailableCmdInfoMsg : public Msg
     {
     public:
@@ -125,6 +122,7 @@ public:
         void SerializeBody() override ;
         void DeSerializeBody() override ;
     };    
+#endif
 
 class AutherizationStartRequestMsg : public Msg
 {

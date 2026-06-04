@@ -9,7 +9,6 @@
 #include <Autherization.h>
 #include <Logger.h>
 #include <DebugSupport.h>
-#include <EnumMsgIDMgr.h>
 #include <SystemMsgConstants.cs.h>
 #include <MsgManager.h>
 
@@ -85,26 +84,26 @@ namespace CE::tcp
     }
     
 
-    int TCPConnection::ReadNoBodyMsg(Msg& msg, MsgPacket& packet)
+    int TCPConnection::ReadNoBodyMsg(Msg*& pMsg, MsgPacket& packet)
     {
         // For messages with no body, 
         //we can directly create the Msg instance based on the header information
-        msg = *MsgManager::GetInstance().CreateMsgFromPacket(packet);
-
-        // returns  1 if suceesful.
-        // -1, there was an error creating msg.
-        if(msg.GetMsgID() == 0)
+        pMsg = MsgManager::GetInstance().CreateMsgFromPacket(packet);
+        if(pMsg == nullptr)
+        {
+            return -1; // Error creating message instance
+        }
+        if(pMsg->GetMsgID() == 0)
         {
             return -1; // Error creating message, invalid MsgID
         }   
-        return 0; // Return 0 for success
+        return 1; // Return 1 for success
     }
-    int TCPConnection::ReadEncryptedBodyMsg(Msg& msg, MsgPacket& packet, size_t sizeToRead)
+    int TCPConnection::ReadEncryptedBodyMsg(Msg*& pMsg, MsgPacket& packet)
     {
         // For messages with an encrypted body, 
         //we need to read the body data, decrypt it, and then create the Msg instance
-        Msg * pMsg = DecryptMsg(packet);
-        msg = *pMsg;
+        pMsg = DecryptMsg(packet);
         if(pMsg == nullptr)
         {
             return -1; // Error decrypting message or creating message instance
@@ -112,20 +111,10 @@ namespace CE::tcp
         return 1; // Return 1 for success
     }
 
-    int TCPConnection::ReadUnEncryptedBodyMsg(Msg& msg, MsgPacket& packet, size_t sizeToRead)
+    int TCPConnection::ReadUnEncryptedBodyMsg(Msg*& pMsg, MsgPacket& packet)
     {   
-        // For messages with an unencrypted body, 
-        //we can read the body data directly and then create the Msg instance
-        std::vector<uint8_t> bodyData(sizeToRead);
-        size_t sizeRead = read(m_socket_fd, bodyData.data(), sizeToRead);
-        if(sizeRead != sizeToRead)
-        {
-            return -1; // Error reading body data
-        }
-        packet.SetPacketDataFromBytes(bodyData);
-        Msg * pMsg = MsgManager::GetInstance().CreateMsgFromPacket(packet);
-        msg = *pMsg;
-        if(pMsg == nullptr)        {
+        pMsg = MsgManager::GetInstance().CreateMsgFromPacket(packet);
+        if(pMsg  == nullptr)        {
             return -1; // Error creating message instance
         }
         return 1; // Return 1 for success
@@ -153,6 +142,7 @@ namespace CE::tcp
                 break;
             }
             // make sure MsgID is valid
+            cout << "Received Packet with ID: " << packet.GetMsgID() << " Name: " << MsgManager::GetInstance().GetMsgNameFromId(packet.GetMsgID()) << endl;
             if( MsgManager::GetInstance().IsValidID(packet.GetMsgID()) == false)
             {
                 // Read Body if there is one
@@ -183,7 +173,7 @@ namespace CE::tcp
             int result = 0;
             if(sizeToRead == 0)
             {
-                result = ReadNoBodyMsg(*pMsg, packet);
+                result = ReadNoBodyMsg(pMsg, packet);
             }
             else if(sizeToRead > 0)
             {
@@ -206,12 +196,13 @@ namespace CE::tcp
                 if(packet.GetIsEncrypted())
                 {
                     packet.SetPacketDataFromBytes(bodyData);
-                    result = ReadEncryptedBodyMsg(*pMsg, packet, sizeToRead);
+                    result = ReadEncryptedBodyMsg(pMsg, packet);
                 }
                 else
                 {
                     packet.SetPacketDataFromBytes(bodyData);
-                    result = ReadUnEncryptedBodyMsg(*pMsg, packet, sizeToRead);
+                        packet.SetBodyDataFromBytes(bodyData);
+                    result = ReadUnEncryptedBodyMsg(pMsg, packet);
                 }
 
             }
@@ -230,7 +221,16 @@ namespace CE::tcp
                 // Clean disconnect by client
                 break;
             }
-            continue;
+            if( packet.GetMsgID() == MsgManager::IntHashOfStr("ValidateIVCmd") && result == -1)
+            {
+                // If the message was a ValidateIV command and we failed to read or process it, 
+                //we can assume it was likely due to decryption failure from an invalid IV, so we can send a specific response for that case
+                CommunicationFailedMsg resultMsg;
+                resultMsg.SetReasonCode(CommunicationFailedMsg::InvalidIV); // Set reason code for refusal due to invalid IV
+                Send(resultMsg);
+                continue; // Continue to next iteration to keep connection alive for valid future messages
+            }
+            break;
         }
 
         m_KeepAlive = false;
@@ -331,8 +331,8 @@ namespace CE::tcp
                     if(ivIsValid == true)
                     {
                         // Sen AvailableCmd Info to Client
-                        AvailableCmdInfoMsg availableCmdInfoMsg;
-                        Send(availableCmdInfoMsg);
+//                        AvailableCmdInfoMsg availableCmdInfoMsg;
+//                        Send(availableCmdInfoMsg);
                         
                         // Notify subscribers that connection is complete and status can be sent
                         ConnectionCompleteData* eventData = new ConnectionCompleteData(m_socket_fd);
@@ -467,7 +467,7 @@ namespace CE::tcp
     {
         if(m_Pairing == false)
         {
-            cout << "Encrypting NON PAIRING Msg " + packet.GetName() + " with : " << endl;
+            cout << "Encrypting NON PAIRING Msg " + MsgManager::GetInstance().GetMsgNameFromId(packet.GetMsgID()) + " with : " << endl;
             m_aes_encrypt.PrintKeyAndIV();
 
             // During pairing mode, we use the IV and key set for this connection without trying to find a match
@@ -476,7 +476,7 @@ namespace CE::tcp
         }
         else
         {
-            cout << "Encrypting PAIRING Msg " + packet.GetName() + " with : " << endl;
+            cout << "Encrypting PAIRING Msg " + MsgManager::GetInstance().GetMsgNameFromId(packet.GetMsgID()) + " with : " << endl;
             m_Pairing_aes_encrypt.PrintKeyAndIV();
 
             // During pairing mode, we use the IV and key set for this connection without trying to find a match
@@ -492,7 +492,7 @@ namespace CE::tcp
         if(m_Pairing == false)
         {
             const IVToKeyMap& ivToKeyMap =  AESAccessManagement::Get()->GetIVToKeyMap();
-            cout << "Decrypting NON PAIRING Msg " + packet.GetName() + " with : " << endl;
+            cout << "NON PAIRING Decrypting  Msg " + MsgManager::GetInstance().GetMsgNameFromId(packet.GetMsgID()) + " with : " << endl;
             m_aes_encrypt.PrintKeyAndIV();
 
             if(EncryptionSetupComplete == true )
@@ -518,7 +518,7 @@ namespace CE::tcp
                     m_aes_decrypt.AES_init_ctx_iv(serverKey, serverIV);
                     m_aes_encrypt.AES_init_ctx_iv(serverKey, serverIV);
 
-                    cout << "TRYING Decrypting  PAIRING Msg " + packet.GetName() + " with : " << endl;
+                    cout << "PAIRING Decrypting  Msg " + MsgManager::GetInstance().GetMsgNameFromId(packet.GetMsgID()) + " with : " << endl;
                     m_aes_decrypt.PrintKeyAndIV();
 
                     std::vector<uint8_t> decryptedData = m_aes_decrypt.AES_CBC_decrypt_buffer(packet.GetPacketDataAsBytes());

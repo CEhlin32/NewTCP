@@ -7,7 +7,7 @@
 #include <cstdint>
 namespace CE::tcp
 {
-    MsgPacket::MsgPacket(std::string name) : m_Name(name), m_ConnectionID(-1)
+    MsgPacket::MsgPacket(std::string name) : m_ConnectionID(-1)
     {
         // Initialize packet data with default values
         m_Data.Prefix = 0xDEADBEEF; // Example prefix

@@ -13,6 +13,7 @@
         inline static const int PAIRING_PORT = 51719;
         inline static const int DEBUG_PORT = 51720;
 
+#ifdef OLD_CODE        
         enum SysMsgCommands
         {
             CommunicationFailedCmd = 0,
@@ -35,6 +36,9 @@
             DebugQueryCmd,
             DebugResponseCmd
         };
+
+    #endif // OLD_CODE
+
         inline static const std::vector<std::string> SystemCmdNames = {
             "CommunicationFailedCmd",
             "RemoteConnectionTestCmd",
@@ -45,9 +49,11 @@
             "AutherizationValidationCmd",
             "AutherizationValidationResponseCmd",
             "AutherizationEndCmd",
+#ifdef OLD_CODE            
             "AvailableCmdInfoCmd",
             "AddToCmdInfoCmd",
             "UpdateAvailableCmdInfoCmd",
+#endif
             "EnableEncryptDecryptCmd",
             "RequestKeyAndIVCmd",
             "UpdateKeyAndIVCmd",

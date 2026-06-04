@@ -1,9 +1,16 @@
 #include <MsgManager.h>
+#include <SystemMsgs.h>
+
+MsgManager* MsgManager::instance = nullptr;
 
 MsgManager& MsgManager::GetInstance()
 {
-    static MsgManager instance;
-    return instance;
+    if(instance == nullptr)
+    {
+        instance = new MsgManager();
+        TCPSystemMsgs::GetInstance(); // Ensure SystemMsgs is initialized and its creators are registered
+    }
+    return *instance;
 }
 
 
@@ -33,7 +40,7 @@ MsgManager& MsgManager::GetInstance()
      */
     bool MsgManager::RegisterMsgNames(const std::vector<std::string>& msgNames)
     {
-            bool allRegistered = true;
+        bool allRegistered = true;
         for(const auto& name : msgNames)
         {
             allRegistered &= RegisterMsgName(name);
@@ -158,5 +165,4 @@ MsgManager& MsgManager::GetInstance()
 
     MsgManager::MsgManager() 
     {
-
     }

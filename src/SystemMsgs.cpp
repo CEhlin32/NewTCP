@@ -11,13 +11,12 @@ namespace CE::tcp
  
     TCPSystemMsgs::TCPSystemMsgs() : TCPSystemMsgCommandsName("TCPSystemCommands")
     {
-        TCPSystemMsgEnumIDs = EnumIDs(TCPSystemMsgCommandsName, SharedSysMsgConstants::SystemCmdNames);
+        MsgManager::GetInstance().RegisterMsgNames({TCPSystemMsgCommandsName}); 
+        MsgManager::GetInstance().AddMsgCreator([this](CE::tcp::MsgPacket& packet) -> CE::tcp::Msg* 
+        {
+            return CreateMsg(packet);
+        });    
     }
-
-    EnumIDs TCPSystemMsgs::GetTCPSystemMsgEnumIDs()
-    {
-        return TCPSystemMsgEnumIDs;
-    }   
 
     Msg* TCPSystemMsgs::CreateMsg(MsgPacket& packet)
     {
@@ -45,8 +44,6 @@ namespace CE::tcp
                 return new ValidateIVMsg(packet);
             case MsgManager::IntHashOfStr("ValidateIVResultCmd"):
                 return new ValidateIVResultMsg(packet);
-            case MsgManager::IntHashOfStr("AddToCmdInfoCmd"):
-                return new AddToCmdInfoMsg(packet);
             case MsgManager::IntHashOfStr("DebugQueryCmd"):
                 return new DebugQueryMsg(packet);
             case MsgManager::IntHashOfStr("DebugResponseCmd"):
@@ -104,7 +101,7 @@ namespace CE::tcp
 
 
 ////////////////////////////////////////////////////////////////////
-    
+#ifdef OLD_CODE    
     AvailableCmdInfoMsg::AvailableCmdInfoMsg() : Msg("AvailableCmdInfoCmd")
     {
     }
@@ -175,6 +172,7 @@ namespace CE::tcp
     void UpdateAvailableCmdInfoMsg::DeSerializeBody()
     {
     }
+ #endif   
 ///////////////////////////////////////////////////////////////////////
 
 

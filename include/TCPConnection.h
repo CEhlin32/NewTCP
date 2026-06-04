@@ -7,7 +7,6 @@
 #include <Msg.h>
 #include <vector>
 #include <PublisherBase.h>
-#include <EnumMsgIDMgr.h>
 namespace CE::tcp
 {
 
@@ -70,9 +69,9 @@ namespace CE::tcp
         static int SubscribeToConnectionComplete(SubscriberBase *subscriber);
     protected:
         void ReadThreadFunction();
-        int ReadNoBodyMsg(Msg& msg, MsgPacket& packet);
-        int ReadEncryptedBodyMsg(Msg& msg, MsgPacket& packet, size_t sizeToRead);
-        int ReadUnEncryptedBodyMsg(Msg& msg, MsgPacket& packet, size_t sizeToRead);
+        int ReadNoBodyMsg(Msg*& pMsg, MsgPacket& packet);
+        int ReadEncryptedBodyMsg(Msg*& pMsg, MsgPacket& packet);
+        int ReadUnEncryptedBodyMsg(Msg*& pMsg, MsgPacket& packet);
 
         bool ProcessMsg(Msg& msg); 
         NamedThread *m_pReadThread;

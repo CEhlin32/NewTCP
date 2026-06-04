@@ -93,10 +93,6 @@ namespace CE::tcp
         
         // @brief Destructor for the message packet
         virtual ~MsgPacket();
-        // Add members and methods as needed
-        // @brief Get the name of the message packet
-        // @return The name of the message packet
-        std::string GetName() const {  return m_Name; }
         // @brief Get the prefix value of the packet
         // @return The prefix value of the packet
         int GetPrefix() const;  
@@ -241,7 +237,6 @@ namespace CE::tcp
             int Postfix;
         };
         PacketHdrData m_Data;
-        std::string m_Name;
         int m_ConnectionID;
         TCPServerTypes ServerType;
 

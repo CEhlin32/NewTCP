@@ -16,8 +16,7 @@ namespace CE::tcp
         return theInstance;
     }
 
-    TCPServerManager::TCPServerManager(const std::string& controllerName) :
-         SystemMsgEnumIDs("TCPSystemCommands", SharedSysMsgConstants::SystemCmdNames)
+    TCPServerManager::TCPServerManager(const std::string& controllerName)
     {
         theInstance = this;
         TCPLogOptionGroup::instance(); // make sure it is initialized and registered as a LogOptionGroup
